@@ -18,7 +18,6 @@ async function bootstrap() {
       'API for managing and locating sports venues. Allows users to view, search, and book sports courts, including detailed information about each venue such as address, available hours, and operational status.',
     )
     .setVersion('1.0')
-    .addTag('venues')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

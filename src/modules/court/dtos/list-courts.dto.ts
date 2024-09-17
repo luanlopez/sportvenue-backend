@@ -16,7 +16,7 @@ export class UserDTO {
   })
   phone?: string;
 }
-export class GetCourtDTO {
+export class CourtDTO {
   @ApiProperty({
     example: '66e9dd3eba8209611a170971',
     description: 'ID of the court',
@@ -87,4 +87,12 @@ export class GetCourtDTO {
     description: 'User details associated with the court',
   })
   user: UserDTO;
+}
+
+export class GetCourtsResponseDTO {
+  @ApiProperty({ type: [CourtDTO], description: 'List of courts' })
+  data: CourtDTO[];
+
+  @ApiProperty({ example: 1, description: 'Total number of courts' })
+  total: number;
 }

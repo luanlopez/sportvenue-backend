@@ -15,8 +15,11 @@ import {
 import { CourtService } from './court.service';
 import { CreateCourtDTO } from './dtos/create-court.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { CourtWithImagesDTO } from './dtos/get-court.dto';
+import { ApiTags } from '@nestjs/swagger';
+import { GetCourtsResponseDTO } from './dtos/list-courts.dto';
+import { GetCourtDTO } from './dtos/get-court.dto';
 
+@ApiTags('Courts')
 @Controller('courts')
 export class CourtController {
   constructor(private readonly courtService: CourtService) {}
@@ -44,10 +47,8 @@ export class CourtController {
   }
 
   @Get(':id')
-  async getCourtWithImageDetails(
-    @Param('id') courtId: string,
-  ): Promise<CourtWithImagesDTO> {
-    return await this.courtService.getCourtWithImageDetails(courtId);
+  async getCourtByID(@Param('id') courtId: string): Promise<GetCourtDTO> {
+    return await this.courtService.getCourtByID(courtId);
   }
 
   @Get()
@@ -56,7 +57,7 @@ export class CourtController {
     @Query('limit') limit = 10,
     @Query('name') name?: string,
     @Query('address') address?: string,
-  ): Promise<{ data: CourtWithImagesDTO[]; total: number }> {
+  ): Promise<GetCourtsResponseDTO> {
     return this.courtService.getCourtsWithPagination(
       page,
       limit,
@@ -72,7 +73,7 @@ export class CourtController {
     @Query('limit') limit = 10,
     @Query('name') name?: string,
     @Query('address') address?: string,
-  ): Promise<{ data: CourtWithImagesDTO[]; total: number }> {
+  ): Promise<GetCourtsResponseDTO> {
     return this.courtService.getCourtsByOwnerWithPagination(
       courtId,
       page,

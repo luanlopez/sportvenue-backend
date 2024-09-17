@@ -5,16 +5,19 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { AppwriteService } from '../common/appwrite/appwrite.service';
 import { CreateCourtDTO } from './dtos/create-court.dto';
 import { Court } from 'src/schema/court.schema';
-import { CourtWithImagesDTO } from './dtos/get-court.dto';
+import { ImageKitService } from '../common/imagekit/imagekit.service';
+import { ClerkService } from '../common/clerk/clerk.service';
+import type { CourtDTO, GetCourtsResponseDTO } from './dtos/list-courts.dto';
+import type { GetCourtDTO } from './dtos/get-court.dto';
 
 @Injectable()
 export class CourtService {
   constructor(
     @InjectModel('Court') private readonly courtModel: Model<Court>,
-    private readonly appwriteService: AppwriteService,
+    private readonly imageKitService: ImageKitService,
+    private readonly clerkService: ClerkService,
   ) {}
 
   async create(data: CreateCourtDTO): Promise<Court> {
@@ -23,9 +26,8 @@ export class CourtService {
         ...data,
         status: true,
       });
-      await createdCourtData.save();
 
-      return createdCourtData;
+      return createdCourtData.save();
     } catch (error) {
       throw new InternalServerErrorException({
         message: error?.message,
@@ -39,12 +41,10 @@ export class CourtService {
     images: Express.Multer.File[],
   ): Promise<void> {
     try {
-      const uploadResponses = await this.appwriteService.uploadFiles(images);
+      const uploadResponses = await this.imageKitService.uploadFiles(images);
       await this.courtModel.findByIdAndUpdate(courtId, {
-        $set: { images: uploadResponses.map((res) => res.$id) },
+        $set: { images: uploadResponses.map((res) => res.url) },
       });
-
-      console.log('Upload responses:', uploadResponses);
     } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to upload images',
@@ -53,58 +53,39 @@ export class CourtService {
     }
   }
 
-  async getCourtWithImageDetails(courtId: string): Promise<CourtWithImagesDTO> {
+  async getCourtByID(courtId: string): Promise<GetCourtDTO> {
     try {
       const court = await this.courtModel.findById(courtId).exec();
-
       if (!court) {
         throw new InternalServerErrorException('Court not found');
       }
 
-      if (!court.images || court.images.length === 0) {
-        const dataReturn: CourtWithImagesDTO = {
-          _id: String(court._id),
-          name: court.name,
-          address: court.address,
-          owner_id: court.owner_id,
-          images: [],
-          availableHours: court.availableHours,
-          createdAt: court.createdAt,
-          updatedAt: court.updatedAt,
-          reason: court.reason,
-          status: court.status,
-          city: court.city,
-          neighborhood: court.neighborhood,
-          number: court.number,
-        };
-        return dataReturn;
-      }
-
-      const imageDetailsPromises = court.images.map((imageId) =>
-        this.appwriteService.getFileDetails(imageId),
+      const userDetails = await this.clerkService.getUserDetails(
+        court.owner_id,
       );
-      const imageDetails = await Promise.all(imageDetailsPromises);
 
-      const dataReturn: CourtWithImagesDTO = {
-        _id: String(court._id),
-        name: court.name,
+      const courtsWithUserDetails: GetCourtDTO = {
+        _id: court._id.toString(),
         address: court.address,
-        images: [],
-        availableHours: court.availableHours,
-        createdAt: court.createdAt,
-        updatedAt: court.updatedAt,
-        reason: court.reason,
-        owner_id: court.owner_id,
-        status: court.status,
-        city: court.city,
         neighborhood: court.neighborhood,
+        city: court.city,
         number: court.number,
+        owner_id: court.owner_id,
+        name: court.name,
+        availableHours: court.availableHours,
+        images: court.images,
+        status: court.status,
+        createdAt: court.createdAt.toISOString(),
+        updatedAt: court.updatedAt.toISOString(),
+        __v: court.__v,
+        user: {
+          name: `${userDetails?.first_name} ${userDetails?.last_name}`,
+          email: userDetails?.email_addresses[0]?.email_address,
+          phone: userDetails?.phone_numbers[0]?.phone_number,
+        },
       };
 
-      return {
-        ...dataReturn,
-        images: imageDetails,
-      };
+      return courtsWithUserDetails;
     } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to get court with image details',
@@ -119,7 +100,7 @@ export class CourtService {
     limit: number = 10,
     name?: string,
     address?: string,
-  ): Promise<{ data: CourtWithImagesDTO[]; total: number }> {
+  ): Promise<GetCourtsResponseDTO> {
     try {
       const query: any = { owner_id: id };
       const filters = { name, address };
@@ -137,32 +118,36 @@ export class CourtService {
         .limit(limit)
         .exec();
 
-      const courtsWithImagesPromises: any = courts.map(async (court) => {
-        const imageDetailsPromises = court.images.map((imageId) =>
-          this.appwriteService.getFileDetails(imageId),
-        );
-        const imageDetails = await Promise.all(imageDetailsPromises);
+      const courtsWithUserDetails: CourtDTO[] = await Promise.all(
+        courts.map(async (court) => {
+          const userDetails = await this.clerkService.getUserDetails(
+            court.owner_id,
+          );
 
-        return {
-          _id: String(court._id),
-          name: court.name,
-          address: court.address,
-          availableHours: court.availableHours,
-          owner_id: court.owner_id,
-          createdAt: court.createdAt,
-          updatedAt: court.updatedAt,
-          status: court.status,
-          reason: court.reason,
-          images: imageDetails,
-          city: court.city,
-          neighborhood: court.neighborhood,
-          number: court.number,
-        };
-      });
+          return {
+            _id: court._id.toString(),
+            address: court.address,
+            neighborhood: court.neighborhood,
+            city: court.city,
+            number: court.number,
+            owner_id: court.owner_id,
+            name: court.name,
+            availableHours: court.availableHours,
+            images: court.images,
+            status: court.status,
+            createdAt: court.createdAt.toISOString(),
+            updatedAt: court.updatedAt.toISOString(),
+            __v: court.__v,
+            user: {
+              name: `${userDetails?.first_name} ${userDetails?.last_name}`,
+              email: userDetails?.email_addresses[0]?.email_address,
+              phone: userDetails?.phone_numbers[0]?.phone_number,
+            },
+          };
+        }),
+      );
 
-      const data = await Promise.all(courtsWithImagesPromises);
-
-      return { data, total };
+      return { data: courtsWithUserDetails, total };
     } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to get courts with pagination',
@@ -176,7 +161,7 @@ export class CourtService {
     limit: number = 10,
     name?: string,
     address?: string,
-  ): Promise<{ data: CourtWithImagesDTO[]; total: number }> {
+  ): Promise<GetCourtsResponseDTO> {
     try {
       const query: any = {};
       const filters = { name, address };
@@ -194,29 +179,39 @@ export class CourtService {
         .limit(limit)
         .exec();
 
-      const courtsWithImagesPromises: any = courts.map(async (court) => {
-        const imageDetailsPromises = court.images.map((imageId) =>
-          this.appwriteService.getFileDetails(imageId),
-        );
-        const imageDetails = await Promise.all(imageDetailsPromises);
+      const courtsWithUserDetails: CourtDTO[] = await Promise.all(
+        courts.map(async (court) => {
+          const userDetails = await this.clerkService.getUserDetails(
+            court.owner_id,
+          );
 
-        return {
-          _id: String(court._id),
-          name: court.name,
-          address: court.address,
-          availableHours: court.availableHours,
-          owner_id: court.owner_id,
-          createdAt: court.createdAt,
-          updatedAt: court.updatedAt,
-          status: court.status,
-          reason: court.reason,
-          images: imageDetails,
-        };
-      });
+          return {
+            _id: court._id.toString(),
+            address: court.address,
+            neighborhood: court.neighborhood,
+            city: court.city,
+            number: court.number,
+            owner_id: court.owner_id,
+            name: court.name,
+            availableHours: court.availableHours,
+            images: court.images,
+            status: court.status,
+            createdAt: court.createdAt.toISOString(),
+            updatedAt: court.updatedAt.toISOString(),
+            __v: court.__v,
+            user: {
+              name: `${userDetails?.first_name} ${userDetails?.last_name}`,
+              email: userDetails?.email_addresses[0]?.email_address,
+              phone: userDetails?.phone_numbers[0]?.phone_number,
+            },
+          };
+        }),
+      );
 
-      const data = await Promise.all(courtsWithImagesPromises);
-
-      return { data, total };
+      return {
+        data: courtsWithUserDetails,
+        total,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to get courts with pagination',
