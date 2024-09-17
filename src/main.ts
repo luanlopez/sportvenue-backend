@@ -5,13 +5,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors({
-    origin: '*', // Ou especifique uma origem específica, se necessário
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept',
-    credentials: false, // Se você estiver usando cookies ou autenticação
-  });
-
   const config = new DocumentBuilder()
     .setTitle('SportVenue API')
     .setDescription(

@@ -9,8 +9,8 @@ import { CreateCourtDTO } from './dtos/create-court.dto';
 import { Court } from 'src/schema/court.schema';
 import { ImageKitService } from '../common/imagekit/imagekit.service';
 import { ClerkService } from '../common/clerk/clerk.service';
-import type { CourtDTO, GetCourtsResponseDTO } from './dtos/list-courts.dto';
-import type { GetCourtDTO } from './dtos/get-court.dto';
+import { CourtDTO, GetCourtsResponseDTO } from './dtos/list-courts.dto';
+import { GetCourtDTO } from './dtos/get-court.dto';
 
 @Injectable()
 export class CourtService {

@@ -5,7 +5,7 @@ import { DatabaseModule } from './modules/common/database/database.module';
 import { CourtModule } from './modules/court/court.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
-import { ReservationModule } from './reservation/reservation.module';
+import { ReservationModule } from './modules/reservation/reservation.module';
 
 const multerOptions: MulterOptions = {
   fileFilter: (req, file, cb) => {
