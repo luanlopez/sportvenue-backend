@@ -5,6 +5,15 @@ export class CreateCourtDTO {
   address: string;
 
   @IsString()
+  neighborhood: string;
+
+  @IsString()
+  city: string;
+
+  @IsString()
+  number: string;
+
+  @IsString()
   owner_id: string;
 
   @IsString()

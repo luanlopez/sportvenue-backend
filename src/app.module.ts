@@ -7,14 +7,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
 
 const multerOptions: MulterOptions = {
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10 MB
-  },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/svg+xml'];
-    if (!allowedTypes.includes(file.mimetype)) {
-      return cb(new Error('Invalid file type'), false);
-    }
     cb(null, true);
   },
 };

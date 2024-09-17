@@ -10,10 +10,25 @@ export interface Court extends Document {
   updatedAt?: Date;
   status?: boolean;
   reason?: string;
+  neighborhood: string;
+  city: string;
+  number: string;
 }
 
 export const CourtSchema = new Schema({
   address: {
+    type: String,
+    required: true,
+  },
+  neighborhood: {
+    type: String,
+    required: true,
+  },
+  city: {
+    type: String,
+    required: true,
+  },
+  number: {
     type: String,
     required: true,
   },

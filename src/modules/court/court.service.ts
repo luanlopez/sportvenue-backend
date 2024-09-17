@@ -19,7 +19,10 @@ export class CourtService {
 
   async create(data: CreateCourtDTO): Promise<Court> {
     try {
-      const createdCourtData = new this.courtModel(data);
+      const createdCourtData = new this.courtModel({
+        ...data,
+        status: true,
+      });
       await createdCourtData.save();
 
       return createdCourtData;
@@ -37,7 +40,6 @@ export class CourtService {
   ): Promise<void> {
     try {
       const uploadResponses = await this.appwriteService.uploadFiles(images);
-      console.log('oi', uploadResponses);
       await this.courtModel.findByIdAndUpdate(courtId, {
         $set: { images: uploadResponses.map((res) => res.$id) },
       });
@@ -64,7 +66,16 @@ export class CourtService {
           _id: String(court._id),
           name: court.name,
           address: court.address,
+          owner_id: court.owner_id,
           images: [],
+          availableHours: court.availableHours,
+          createdAt: court.createdAt,
+          updatedAt: court.updatedAt,
+          reason: court.reason,
+          status: court.status,
+          city: court.city,
+          neighborhood: court.neighborhood,
+          number: court.number,
         };
         return dataReturn;
       }
@@ -79,6 +90,15 @@ export class CourtService {
         name: court.name,
         address: court.address,
         images: [],
+        availableHours: court.availableHours,
+        createdAt: court.createdAt,
+        updatedAt: court.updatedAt,
+        reason: court.reason,
+        owner_id: court.owner_id,
+        status: court.status,
+        city: court.city,
+        neighborhood: court.neighborhood,
+        number: court.number,
       };
 
       return {
@@ -88,6 +108,64 @@ export class CourtService {
     } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to get court with image details',
+        cause: error?.message,
+      });
+    }
+  }
+
+  async getCourtsByOwnerWithPagination(
+    id: string,
+    page: number = 1,
+    limit: number = 10,
+    name?: string,
+    address?: string,
+  ): Promise<{ data: CourtWithImagesDTO[]; total: number }> {
+    try {
+      const query: any = { owner_id: id };
+      const filters = { name, address };
+
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          query[key] = new RegExp(value, 'i');
+        }
+      });
+
+      const total = await this.courtModel.countDocuments(query).exec();
+      const courts = await this.courtModel
+        .find(query)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec();
+
+      const courtsWithImagesPromises: any = courts.map(async (court) => {
+        const imageDetailsPromises = court.images.map((imageId) =>
+          this.appwriteService.getFileDetails(imageId),
+        );
+        const imageDetails = await Promise.all(imageDetailsPromises);
+
+        return {
+          _id: String(court._id),
+          name: court.name,
+          address: court.address,
+          availableHours: court.availableHours,
+          owner_id: court.owner_id,
+          createdAt: court.createdAt,
+          updatedAt: court.updatedAt,
+          status: court.status,
+          reason: court.reason,
+          images: imageDetails,
+          city: court.city,
+          neighborhood: court.neighborhood,
+          number: court.number,
+        };
+      });
+
+      const data = await Promise.all(courtsWithImagesPromises);
+
+      return { data, total };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Failed to get courts with pagination',
         cause: error?.message,
       });
     }
@@ -116,7 +194,7 @@ export class CourtService {
         .limit(limit)
         .exec();
 
-      const courtsWithImagesPromises = courts.map(async (court) => {
+      const courtsWithImagesPromises: any = courts.map(async (court) => {
         const imageDetailsPromises = court.images.map((imageId) =>
           this.appwriteService.getFileDetails(imageId),
         );
@@ -126,6 +204,12 @@ export class CourtService {
           _id: String(court._id),
           name: court.name,
           address: court.address,
+          availableHours: court.availableHours,
+          owner_id: court.owner_id,
+          createdAt: court.createdAt,
+          updatedAt: court.updatedAt,
+          status: court.status,
+          reason: court.reason,
           images: imageDetails,
         };
       });

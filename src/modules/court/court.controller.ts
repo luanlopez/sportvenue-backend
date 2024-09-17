@@ -65,6 +65,23 @@ export class CourtController {
     );
   }
 
+  @Get('/owner/:id')
+  async getAllCourtsByOwnerID(
+    @Param('id') courtId: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('name') name?: string,
+    @Query('address') address?: string,
+  ): Promise<{ data: CourtWithImagesDTO[]; total: number }> {
+    return this.courtService.getCourtsByOwnerWithPagination(
+      courtId,
+      page,
+      limit,
+      name,
+      address,
+    );
+  }
+
   @Put(':id')
   async updateCourt(
     @Param('id') courtId: string,

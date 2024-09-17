@@ -43,8 +43,35 @@ export class CourtWithImagesDTO {
   address: string;
 
   @ApiProperty()
+  neighborhood: string;
+
+  @ApiProperty()
+  city: string;
+
+  @ApiProperty()
+  number: string;
+
+  @ApiProperty()
   name: string;
 
   @ApiProperty({ type: [ImageDetailsDTO] })
   images: ImageDetailsDTO[];
+
+  @ApiProperty()
+  owner_id: string;
+
+  @ApiProperty({ type: [String] })
+  availableHours: string[];
+
+  @ApiProperty()
+  status: boolean;
+
+  @ApiProperty()
+  reason: string;
+
+  @ApiProperty()
+  createdAt: Date;
+
+  @ApiProperty()
+  updatedAt: Date;
 }
