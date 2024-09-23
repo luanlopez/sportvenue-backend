@@ -21,6 +21,7 @@ export class ResendService {
       const response = await axios.post(
         this.resendEndpoint,
         {
+          from: 'luanlopesdasilva165@gmail.com',
           to,
           subject,
           text,

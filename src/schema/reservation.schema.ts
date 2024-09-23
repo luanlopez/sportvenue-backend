@@ -4,10 +4,7 @@ export interface Reservation extends Document {
   ownerId: string;
   userId: string;
   courtId: string;
-  reservedTime: {
-    start: Date;
-    end: Date;
-  };
+  reservedStartTime: string;
   status: 'requested' | 'approved' | 'rejected' | 'cancelled';
 }
 
@@ -28,15 +25,10 @@ export const ReservationSchema = new Schema<Reservation>(
       required: true,
       trim: true,
     },
-    reservedTime: {
-      start: {
-        type: Schema.Types.Date,
-        required: true,
-      },
-      end: {
-        type: Schema.Types.Date,
-        required: true,
-      },
+    reservedStartTime: {
+      type: Schema.Types.String,
+      required: true,
+      trim: true,
     },
     status: {
       type: Schema.Types.String,

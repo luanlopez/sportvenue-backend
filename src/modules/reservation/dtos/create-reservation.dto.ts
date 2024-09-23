@@ -32,15 +32,7 @@ export class CreateReservationDTO {
   })
   @IsDateString()
   @IsNotEmpty()
-  reservedTimeStart: string;
-
-  @ApiProperty({
-    description: 'End time of the reservation.',
-    example: '2024-09-18T12:00:00Z',
-  })
-  @IsDateString()
-  @IsNotEmpty()
-  reservedTimeEnd: string;
+  reservedStartTime: string;
 
   @ApiProperty({
     description: 'Status of the reservation. Default is "requested".',
