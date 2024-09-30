@@ -3,7 +3,7 @@ import { Schema, Document } from 'mongoose';
 export interface Reservation extends Document {
   ownerId: string;
   userId: string;
-  courtId: string;
+  courtId: Schema.Types.ObjectId;
   reservedStartTime: string;
   status: 'requested' | 'approved' | 'rejected' | 'cancelled';
 }
@@ -21,9 +21,9 @@ export const ReservationSchema = new Schema<Reservation>(
       trim: true,
     },
     courtId: {
-      type: Schema.Types.String,
+      type: Schema.Types.ObjectId,
+      ref: 'Court',
       required: true,
-      trim: true,
     },
     reservedStartTime: {
       type: Schema.Types.String,
