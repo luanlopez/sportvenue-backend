@@ -1,8 +1,8 @@
 import { Schema, Document } from 'mongoose';
 
 export interface Reservation extends Document {
-  ownerId: string;
-  userId: string;
+  ownerId: Schema.Types.ObjectId;
+  userId: Schema.Types.ObjectId;
   courtId: Schema.Types.ObjectId;
   reservedStartTime: string;
   status: 'requested' | 'approved' | 'rejected' | 'cancelled';
@@ -11,14 +11,14 @@ export interface Reservation extends Document {
 export const ReservationSchema = new Schema<Reservation>(
   {
     ownerId: {
-      type: Schema.Types.String,
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
-      trim: true,
     },
     userId: {
-      type: Schema.Types.String,
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       required: true,
-      trim: true,
     },
     courtId: {
       type: Schema.Types.ObjectId,

@@ -4,26 +4,29 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, ObjectId } from 'mongoose';
 import { CreateCourtDTO } from './dtos/create-court.dto';
-import { Court } from 'src/schema/court.schema';
+import { Court } from '../../../src/schema/court.schema';
 import { ImageKitService } from '../common/imagekit/imagekit.service';
-import { ClerkService } from '../common/clerk/clerk.service';
-import { CourtDTO, GetCourtsResponseDTO } from './dtos/list-courts.dto';
+import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 import { GetCourtDTO } from './dtos/get-court.dto';
+import { CourtDTO, GetCourtsResponseDTO } from './dtos/list-courts.dto';
 
 @Injectable()
 export class CourtService {
   constructor(
     @InjectModel('Court') private readonly courtModel: Model<Court>,
     private readonly imageKitService: ImageKitService,
-    private readonly clerkService: ClerkService,
   ) {}
 
-  async create(data: CreateCourtDTO): Promise<Court> {
+  async create(
+    user: UserInterface,
+    data: CreateCourtDTO,
+  ): Promise<Partial<Court>> {
     try {
       const createdCourtData = new this.courtModel({
         ...data,
+        ownerId: user?.id,
         status: true,
       });
 
@@ -55,14 +58,17 @@ export class CourtService {
 
   async getCourtByID(courtId: string): Promise<GetCourtDTO> {
     try {
-      const court = await this.courtModel.findById(courtId).exec();
+      const court = await this.courtModel
+        .findById(courtId)
+        .populate('ownerId', 'firstName lastName email phone')
+        .lean()
+        .exec();
+
       if (!court) {
         throw new InternalServerErrorException('Court not found');
       }
 
-      const userDetails = await this.clerkService.getUserDetails(
-        court.owner_id,
-      );
+      const userDetails: any = court?.ownerId;
 
       const courtsWithUserDetails: GetCourtDTO = {
         _id: court._id.toString(),
@@ -70,7 +76,7 @@ export class CourtService {
         neighborhood: court.neighborhood,
         city: court.city,
         number: court.number,
-        owner_id: court.owner_id,
+        owner_id: String(userDetails._id),
         name: court.name,
         availableHours: court.availableHours,
         images: court.images,
@@ -79,14 +85,15 @@ export class CourtService {
         updatedAt: court.updatedAt.toISOString(),
         __v: court.__v,
         user: {
-          name: `${userDetails?.first_name} ${userDetails?.last_name}`,
-          email: userDetails?.email_addresses[0]?.email_address,
-          phone: userDetails?.phone_numbers[0]?.phone_number,
+          name: `${userDetails?.firstName} ${userDetails?.lastName ? userDetails?.lastName : ''}`,
+          email: userDetails?.email,
+          phone: userDetails?.phone,
         },
       };
 
       return courtsWithUserDetails;
     } catch (error) {
+      console.log(error)
       throw new InternalServerErrorException({
         message: 'Failed to get court with image details',
         cause: error?.message,
@@ -102,7 +109,7 @@ export class CourtService {
     address?: string,
   ): Promise<GetCourtsResponseDTO> {
     try {
-      const query: any = { owner_id: id };
+      const query: any = { ownerId: id };
       const filters = { name, address };
 
       Object.entries(filters).forEach(([key, value]) => {
@@ -112,42 +119,43 @@ export class CourtService {
       });
 
       const total = await this.courtModel.countDocuments(query).exec();
+
       const courts = await this.courtModel
         .find(query)
         .skip((page - 1) * limit)
         .limit(limit)
+        .populate('ownerId', 'firstName lastName email phone')
         .exec();
 
-      const courtsWithUserDetails: CourtDTO[] = await Promise.all(
-        courts.map(async (court) => {
-          const userDetails = await this.clerkService.getUserDetails(
-            court.owner_id,
-          );
+      const courtsWithUserDetails: CourtDTO[] = courts.map((court) => {
+        const userDetails: any = court.ownerId;
 
-          return {
-            _id: court._id.toString(),
-            address: court.address,
-            neighborhood: court.neighborhood,
-            city: court.city,
-            number: court.number,
-            owner_id: court.owner_id,
-            name: court.name,
-            availableHours: court.availableHours,
-            images: court.images,
-            status: court.status,
-            createdAt: court.createdAt.toISOString(),
-            updatedAt: court.updatedAt.toISOString(),
-            __v: court.__v,
-            user: {
-              name: `${userDetails?.first_name} ${userDetails?.last_name}`,
-              email: userDetails?.email_addresses[0]?.email_address,
-              phone: userDetails?.phone_numbers[0]?.phone_number,
-            },
-          };
-        }),
-      );
+        return {
+          _id: court._id.toString(),
+          address: court.address,
+          neighborhood: court.neighborhood,
+          city: court.city,
+          number: court.number,
+          owner_id: String(userDetails._id),
+          name: court.name,
+          availableHours: court.availableHours,
+          images: court.images,
+          status: court.status,
+          createdAt: court.createdAt.toISOString(),
+          updatedAt: court.updatedAt.toISOString(),
+          __v: court.__v,
+          user: {
+            name: `${userDetails?.firstName} ${userDetails?.lastName ? userDetails?.lastName : ''}`,
+            email: userDetails?.email,
+            phone: userDetails?.phone,
+          },
+        };
+      });
 
-      return { data: courtsWithUserDetails, total };
+      return {
+        data: courtsWithUserDetails,
+        total,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to get courts with pagination',
@@ -173,40 +181,38 @@ export class CourtService {
       });
 
       const total = await this.courtModel.countDocuments(query).exec();
+
       const courts = await this.courtModel
         .find(query)
         .skip((page - 1) * limit)
         .limit(limit)
+        .populate('ownerId', 'firstName lastName email phone')
         .exec();
 
-      const courtsWithUserDetails: CourtDTO[] = await Promise.all(
-        courts.map(async (court) => {
-          const userDetails = await this.clerkService.getUserDetails(
-            court.owner_id,
-          );
+      const courtsWithUserDetails: GetCourtDTO[] = courts.map((court) => {
+        const userDetails: any = court.ownerId;
 
-          return {
-            _id: court._id.toString(),
-            address: court.address,
-            neighborhood: court.neighborhood,
-            city: court.city,
-            number: court.number,
-            owner_id: court.owner_id,
-            name: court.name,
-            availableHours: court.availableHours,
-            images: court.images,
-            status: court.status,
-            createdAt: court.createdAt.toISOString(),
-            updatedAt: court.updatedAt.toISOString(),
-            __v: court.__v,
-            user: {
-              name: `${userDetails?.first_name} ${userDetails?.last_name}`,
-              email: userDetails?.email_addresses[0]?.email_address,
-              phone: userDetails?.phone_numbers[0]?.phone_number,
-            },
-          };
-        }),
-      );
+        return {
+          _id: court._id.toString(),
+          address: court.address,
+          neighborhood: court.neighborhood,
+          city: court.city,
+          number: court.number,
+          owner_id: String(userDetails._id),
+          name: court.name,
+          availableHours: court.availableHours,
+          images: court.images,
+          status: court.status,
+          createdAt: court.createdAt.toISOString(),
+          updatedAt: court.updatedAt.toISOString(),
+          __v: court.__v,
+          user: {
+            name: `${userDetails?.firstName} ${userDetails?.lastName ? userDetails?.lastName : ''}`,
+            email: userDetails?.email,
+            phone: userDetails?.phone,
+          },
+        };
+      });
 
       return {
         data: courtsWithUserDetails,
@@ -235,7 +241,7 @@ export class CourtService {
     }
   }
 
-  async deactivateCourt(courtId: string): Promise<Court> {
+  async deactivateCourt(courtId: string): Promise<Partial<Court>> {
     try {
       const deactivatedCourt = await this.courtModel
         .findByIdAndUpdate(courtId, { status: false }, { new: true })
@@ -254,7 +260,7 @@ export class CourtService {
     }
   }
 
-  async activateCourt(courtId: string): Promise<Court> {
+  async activateCourt(courtId: string): Promise<Partial<Court>> {
     try {
       const activatedCourt = await this.courtModel
         .findByIdAndUpdate(courtId, { status: true }, { new: true })
@@ -293,6 +299,52 @@ export class CourtService {
     } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to update court',
+        cause: error?.message,
+      });
+    }
+  }
+
+  async removeAvailableHour(courtId: ObjectId, hour: string): Promise<Court> {
+    try {
+      const updatedCourt = await this.courtModel
+        .findByIdAndUpdate(
+          courtId,
+          { $pull: { availableHours: hour } },
+          { new: true },
+        )
+        .exec();
+
+      if (!updatedCourt) {
+        throw new NotFoundException('Court not found');
+      }
+
+      return updatedCourt;
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Failed to approve court hour',
+        cause: error?.message,
+      });
+    }
+  }
+
+  async restoreAvailableHour(courtId: ObjectId, hour: string): Promise<Court> {
+    try {
+      const updatedCourt = await this.courtModel
+        .findByIdAndUpdate(
+          courtId,
+          { $addToSet: { availableHours: hour } },
+          { new: true },
+        )
+        .exec();
+
+      if (!updatedCourt) {
+        throw new NotFoundException('Court not found');
+      }
+
+      return updatedCourt;
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Failed to cancel court hour',
         cause: error?.message,
       });
     }

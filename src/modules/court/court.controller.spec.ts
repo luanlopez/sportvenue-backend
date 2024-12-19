@@ -1,199 +1,287 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CourtController } from './court.controller';
 import { CourtService } from './court.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
 import { CreateCourtDTO } from './dtos/create-court.dto';
-import { CourtWithImagesDTO } from './dtos/get-court.dto';
+import { UserInterface } from '../auth/strategies/interfaces/user.interface';
+import { GetCourtDTO } from './dtos/get-court.dto';
+import { Court } from 'src/schema/court.schema';
+import { GetCourtsResponseDTO } from './dtos/list-courts.dto';
 import { BadRequestException } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { CourtSchema } from '../../schema/court.schema';
-import { AppwriteService } from '../common/appwrite/appwrite.service';
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-
-const mockCourtService = {
-  create: jest.fn(),
-  uploadImages: jest.fn(),
-  getCourtWithImageDetails: jest.fn(),
-  getCourtsWithPagination: jest.fn(),
-  updateCourt: jest.fn(),
-  deleteCourt: jest.fn(),
-  deactivateCourt: jest.fn(),
-  activateCourt: jest.fn(),
-};
 
 describe('CourtController', () => {
-  let controller: CourtController;
-  let service: CourtService;
-  let mongoServer: MongoMemoryServer;
+  let courtController: CourtController;
+  let courtService: CourtService;
 
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-
-    await mongoose.connect(mongoUri);
-
+  beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [
-        MongooseModule.forRoot(mongoUri),
-        MongooseModule.forFeature([{ name: 'Court', schema: CourtSchema }]),
-      ],
       controllers: [CourtController],
       providers: [
         {
           provide: CourtService,
-          useValue: mockCourtService,
-        },
-        {
-          provide: AppwriteService,
           useValue: {
-            uploadFiles: jest.fn().mockResolvedValue([]),
-            getFileDetails: jest.fn().mockResolvedValue([]),
+            create: jest.fn(),
+            uploadImages: jest.fn(),
+            getCourtByID: jest.fn(),
+            getCourtsWithPagination: jest.fn(),
+            getCourtsByOwnerWithPagination: jest.fn(),
+            updateCourt: jest.fn(),
+            deleteCourt: jest.fn(),
+            deactivateCourt: jest.fn(),
+            activateCourt: jest.fn(),
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
-    controller = module.get<CourtController>(CourtController);
-    service = module.get<CourtService>(CourtService);
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    courtController = module.get<CourtController>(CourtController);
+    courtService = module.get<CourtService>(CourtService);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(courtController).toBeDefined();
+    expect(courtService).toBeDefined();
   });
 
   describe('create', () => {
-    it('should create a court', async () => {
-      const createCourtDTO: CreateCourtDTO = {
-        name: 'Court Name',
-        address: 'Court Address',
-        owner_id: 'owner_id',
-        availableHours: [],
+    it('should call courtService.create with correct parameters', async () => {
+      const courtCreated: Partial<Court> = {
+        _id: '66e9dd3eba8209611a170971',
+        address: '123 Main Street',
+        name: 'Central Court',
+        availableHours: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+        images: ['https://example.com/image.png'],
+        createdAt: new Date('2024-09-17T19:49:18.518Z'),
+        updatedAt: new Date('2024-09-17T19:49:18.518Z'),
+        status: true,
+        reason: 'Opening a new court in the city center',
+        neighborhood: 'Downtown',
+        city: 'New York',
+        number: '45A',
       };
-      jest.spyOn(service, 'create').mockResolvedValue(createCourtDTO as any);
 
-      await expect(controller.create(createCourtDTO)).resolves.toEqual(
-        createCourtDTO,
-      );
+      const createCourtDTO: CreateCourtDTO = {
+        address: '123 Main Street',
+        neighborhood: 'Downtown',
+        city: 'New York',
+        number: '45A',
+        owner_id: '123456',
+        name: 'Central Court',
+        availableHours: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+        reason: 'Opening a new court in the city center',
+      };
+
+      const user: UserInterface = {
+        id: 'owner123',
+        email: 'example@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        userType: 'HOUSE_OWNER',
+      };
+
+      jest.spyOn(courtService, 'create').mockResolvedValue(courtCreated);
+
+      const result = await courtController.create(createCourtDTO, user);
+      expect(courtService.create).toHaveBeenCalledWith(user, createCourtDTO);
+      expect(result).toEqual(courtCreated);
     });
   });
 
   describe('uploadImages', () => {
-    it('should upload images successfully', async () => {
-      const files: Express.Multer.File[] = [
-        {
-          fieldname: 'images',
-          originalname: 'image.svg',
-          encoding: '7bit',
-          mimetype: 'image/svg+xml',
-          size: 1024,
-          stream: null as any,
-          destination: '',
-          filename: 'image.svg',
-          path: '',
-          buffer: Buffer.from(''),
-        } as any,
-      ];
-
-      jest.spyOn(service, 'uploadImages').mockResolvedValue(undefined);
-
-      await expect(controller.uploadImages('1', files)).resolves.toEqual({
-        message: 'Images uploaded successfully',
-      });
-    });
-
     it('should throw BadRequestException if no files are provided', async () => {
-      await expect(controller.uploadImages('1', [])).rejects.toThrow(
+      await expect(courtController.uploadImages('1', [])).rejects.toThrow(
         BadRequestException,
       );
     });
+
+    it('should call courtService.uploadImages with correct parameters', async () => {
+      const files = [
+        { filename: 'image1.jpg' },
+        { filename: 'image2.jpg' },
+      ] as any;
+
+      jest.spyOn(courtService, 'uploadImages').mockResolvedValueOnce(undefined);
+
+      const result = await courtController.uploadImages('1', files);
+
+      expect(courtService.uploadImages).toHaveBeenCalledWith('1', files);
+      expect(result).toEqual({ message: 'Images uploaded successfully' });
+    });
   });
 
-  describe('getCourtWithImageDetails', () => {
-    it('should return court with image details', async () => {
-      const courtId = '1';
-      const result: CourtWithImagesDTO = {
-        _id: courtId,
-        name: 'Court Name',
-        address: 'Court Address',
-        images: [],
+  describe('getCourtByID', () => {
+    it('should return court details', async () => {
+      const courtId = '66e9dd3eba8209611a170971';
+      const courtDetails: GetCourtDTO = {
+        _id: '66e9dd3eba8209611a170971',
+        address: 'R. Xingu',
+        neighborhood: 'Crispim',
+        city: 'Itapecerica da Serra - SP',
+        number: '130/262',
+        owner_id: 'user_2lX2f8JuZMKeTlKjBQ4oia4JItX',
+        name: 'Campo do Imperial',
+        availableHours: ['20:00', '21:00'],
+        images: [
+          'https://ik.imagekit.io/pqxf1vesz/uploads/qa_evidencia_fk_202_4hiQZCfb1A.png',
+        ],
+        status: true,
+        createdAt: '2024-09-17T19:49:18.518Z',
+        updatedAt: '2024-09-17T19:49:18.518Z',
+        __v: 0,
+        user: {
+          name: 'Luan Lopes',
+          email: 'luanlopesdasilva165@gmail.com',
+          phone: '11999999999',
+        },
       };
-      jest.spyOn(service, 'getCourtWithImageDetails').mockResolvedValue(result);
 
-      await expect(
-        controller.getCourtWithImageDetails(courtId),
-      ).resolves.toEqual(result);
+      jest
+        .spyOn(courtService, 'getCourtByID')
+        .mockResolvedValueOnce(courtDetails);
+
+      const result = await courtController.getCourtByID(courtId);
+
+      expect(courtService.getCourtByID).toHaveBeenCalledWith(courtId);
+
+      expect(result).toEqual(courtDetails);
     });
   });
 
   describe('getAllCourts', () => {
-    it('should return all courts with pagination and filters', async () => {
-      const result = { data: [], total: 0 };
-      jest.spyOn(service, 'getCourtsWithPagination').mockResolvedValue(result);
+    it('should return paginated list of courts', async () => {
+      const query = {
+        page: 1,
+        limit: 10,
+        name: 'Central',
+        address: 'Downtown',
+      };
 
-      await expect(controller.getAllCourts(1, 10)).resolves.toEqual(result);
+      const paginatedResult: GetCourtsResponseDTO = {
+        data: [],
+        total: 0,
+      };
+
+      jest
+        .spyOn(courtService, 'getCourtsWithPagination')
+        .mockResolvedValueOnce(paginatedResult);
+
+      const result = await courtController.getAllCourts(
+        query.page,
+        query.limit,
+        query.name,
+        query.address,
+      );
+
+      expect(courtService.getCourtsWithPagination).toHaveBeenCalledWith(
+        query.page,
+        query.limit,
+        query.name,
+        query.address,
+      );
+
+      expect(result).toEqual(paginatedResult);
     });
   });
 
   describe('updateCourt', () => {
-    it('should update a court', async () => {
+    it('should call courtService.updateCourt with correct parameters', async () => {
       const courtId = '1';
       const updateCourtDTO: CreateCourtDTO = {
-        name: 'Updated Court Name',
-        address: 'Updated Court Address',
-        owner_id: 'owner_id',
-        availableHours: [],
+        address: '123 Main Street',
+        neighborhood: 'Downtown',
+        city: 'New York',
+        number: '45A',
+        owner_id: '123456',
+        name: 'Updated Court',
+        availableHours: ['10:00 AM - 12:00 PM'],
+        reason: 'Updating court details',
       };
-      jest
-        .spyOn(service, 'updateCourt')
-        .mockResolvedValue(updateCourtDTO as any);
 
-      await expect(
-        controller.updateCourt(courtId, updateCourtDTO),
-      ).resolves.toEqual(updateCourtDTO);
+      jest.spyOn(courtService, 'updateCourt').mockResolvedValueOnce(undefined);
+
+      await courtController.updateCourt(courtId, updateCourtDTO);
+
+      expect(courtService.updateCourt).toHaveBeenCalledWith(
+        courtId,
+        updateCourtDTO,
+      );
     });
   });
 
   describe('deleteCourt', () => {
-    it('should delete a court', async () => {
+    it('should call courtService.deleteCourt with correct parameter', async () => {
       const courtId = '1';
-      jest.spyOn(service, 'deleteCourt').mockResolvedValue(undefined);
 
-      await expect(controller.deleteCourt(courtId)).resolves.toEqual({
-        message: 'Court deleted successfully',
-      });
+      jest.spyOn(courtService, 'deleteCourt').mockResolvedValueOnce(undefined);
+
+      const result = await courtController.deleteCourt(courtId);
+
+      expect(courtService.deleteCourt).toHaveBeenCalledWith(courtId);
+      expect(result).toEqual({ message: 'Court deleted successfully' });
     });
   });
 
   describe('inactivateCourt', () => {
-    it('should inactivate a court', async () => {
+    it('should call courtService.deactivateCourt with correct parameter', async () => {
       const courtId = '1';
-      jest
-        .spyOn(service, 'deactivateCourt')
-        .mockResolvedValue({ _id: courtId, isActive: false } as any);
+      const courtInactivated: Partial<Court> = {
+        _id: '66e9dd3eba8209611a170971',
+        address: '123 Main Street',
+        name: 'Central Court',
+        availableHours: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+        images: ['https://example.com/image.png'],
+        createdAt: new Date('2024-09-17T19:49:18.518Z'),
+        updatedAt: new Date('2024-09-17T19:49:18.518Z'),
+        status: false,
+        reason: 'Opening a new court in the city center',
+        neighborhood: 'Downtown',
+        city: 'New York',
+        number: '45A',
+      };
 
-      await expect(controller.inactivateCourt(courtId)).resolves.toEqual({
-        _id: courtId,
-        isActive: false,
-      });
+      jest
+        .spyOn(courtService, 'deactivateCourt')
+        .mockResolvedValueOnce(courtInactivated);
+
+      const result = await courtController.inactivateCourt(courtId);
+
+      expect(courtService.deactivateCourt).toHaveBeenCalledWith(courtId);
+      expect(result).toEqual(courtInactivated);
     });
   });
 
   describe('activateCourt', () => {
-    it('should activate a court', async () => {
+    it('should call courtService.activateCourt with correct parameter', async () => {
       const courtId = '1';
-      jest
-        .spyOn(service, 'activateCourt')
-        .mockResolvedValue({ _id: courtId, isActive: true } as any);
+      const courtActivated: Partial<Court> = {
+        _id: '66e9dd3eba8209611a170971',
+        address: '123 Main Street',
+        name: 'Central Court',
+        availableHours: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+        images: ['https://example.com/image.png'],
+        createdAt: new Date('2024-09-17T19:49:18.518Z'),
+        updatedAt: new Date('2024-09-17T19:49:18.518Z'),
+        status: false,
+        reason: 'Opening a new court in the city center',
+        neighborhood: 'Downtown',
+        city: 'New York',
+        number: '45A',
+      };
 
-      await expect(controller.activateCourt(courtId)).resolves.toEqual({
-        _id: courtId,
-        isActive: true,
-      });
+      jest
+        .spyOn(courtService, 'activateCourt')
+        .mockResolvedValueOnce(courtActivated);
+
+      const result = await courtController.activateCourt(courtId);
+
+      expect(courtService.activateCourt).toHaveBeenCalledWith(courtId);
+      expect(result).toEqual(courtActivated);
     });
   });
 });

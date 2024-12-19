@@ -2,10 +2,12 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseModule } from './modules/common/database/database.module';
-import { CourtModule } from './modules/court/court.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
-import { ReservationModule } from './modules/reservation/reservation.module';
+// import { ReservationModule } from './modules/reservation/reservation.module';
+import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { CourtModule } from './modules/court/court.module';
 
 const multerOptions: MulterOptions = {
   fileFilter: (req, file, cb) => {
@@ -28,7 +30,9 @@ const multerOptions: MulterOptions = {
       }),
     }),
     CourtModule,
-    ReservationModule,
+    // ReservationModule,
+    UsersModule,
+    AuthModule,
   ],
 })
 export class AppModule {}

@@ -2,7 +2,7 @@ import { Schema, Document } from 'mongoose';
 
 export interface Court extends Document {
   address: string;
-  owner_id: string;
+  ownerId: Schema.Types.ObjectId;
   name: string;
   availableHours: string[];
   images: string[];
@@ -32,8 +32,9 @@ export const CourtSchema = new Schema({
     type: String,
     required: true,
   },
-  owner_id: {
-    type: String,
+  ownerId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
     required: true,
   },
   name: {
