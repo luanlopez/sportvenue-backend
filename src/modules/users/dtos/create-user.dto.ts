@@ -6,7 +6,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { UserType } from '../../../../src/schema/user.schema';
+import { UserType } from 'src/schema/user.schema';
 
 export class CreateUserDTOInput {
   @ApiProperty({
@@ -63,4 +63,36 @@ export class CreateUserDTOOutput {
     example: '67630fcec71dd5ee02a136bc',
   })
   id: string;
+
+  @ApiProperty({
+    description: 'First name of the user',
+    example: 'John',
+  })
+  @IsString()
+  firstName: string;
+
+  @ApiProperty({
+    description: 'Last name of the user',
+    example: 'Doe',
+  })
+  @IsString()
+  lastName: string;
+
+  @ApiProperty({
+    description: 'Email address of the user',
+    example: 'john.doe@example.com',
+  })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({
+    description:
+      'User type of the user, optional. If not provided, defaults to HOUSE_OWNER.',
+    example: 'USER',
+    enum: UserType,
+    required: false,
+  })
+  @IsEnum(UserType)
+  @IsOptional()
+  userType?: UserType;
 }

@@ -45,6 +45,10 @@ export class UsersService {
 
     return {
       id: String(newUser?._id),
+      email: newUser.email,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      userType: newUser.userType,
     };
   }
 

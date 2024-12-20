@@ -11,14 +11,6 @@ export class CreateReservationDTO {
   ownerId: string;
 
   @ApiProperty({
-    description: 'ID of the user making the reservation.',
-    example: 'user_5d3c7b9c8e8a2d0d82d348f6',
-  })
-  @IsString()
-  @IsNotEmpty()
-  userId: string;
-
-  @ApiProperty({
     description: 'ID of the court being reserved.',
     example: 'court_1a2b3c4d5e6f7g8h9i0j',
   })

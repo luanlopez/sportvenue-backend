@@ -5,7 +5,7 @@ import {
   IsOptional,
   MinLength,
 } from 'class-validator';
-import { UserType } from '../../../../src/schema/user.schema';
+import { UserType } from 'src/schema/user.schema';
 
 export class UpdateUserDTO {
   @IsString()

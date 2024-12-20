@@ -1,239 +1,188 @@
-// import { Injectable, InternalServerErrorException } from '@nestjs/common';
-// import { InjectModel } from '@nestjs/mongoose';
-// import { Model } from 'mongoose';
-// import { Reservation } from 'src/schema/reservation.schema';
-// import { CreateReservationDTO } from './dtos/create-reservation.dto';
-// import { CourtService } from '../court/court.service';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Reservation } from 'src/schema/reservation.schema';
+import { CreateReservationDTO } from './dtos/create-reservation.dto';
+import { CourtService } from '../court/court.service';
+import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 
-// @Injectable()
-// export class ReservationService {
-//   constructor(
-//     @InjectModel('Reservation')
-//     private readonly reservationModel: Model<Reservation>,
-//     private readonly courtService: CourtService,
-//   ) {}
+@Injectable()
+export class ReservationService {
+  constructor(
+    @InjectModel('Reservation')
+    private readonly reservationModel: Model<Reservation>,
+    private readonly courtService: CourtService,
+  ) {}
 
-//   async create(data: CreateReservationDTO): Promise<Reservation> {
-//     try {
-//       const createdReservationData = new this.reservationModel({
-//         ...data,
-//         status: 'requested',
-//       });
+  async create(
+    user: UserInterface,
+    data: CreateReservationDTO,
+  ): Promise<Partial<Reservation>> {
+    try {
+      const createdReservationData = new this.reservationModel({
+        ...data,
+        userId: user?.id,
+        status: 'requested',
+      });
 
-//       const reservation = await createdReservationData.save();
+      const reservation = await createdReservationData.save();
 
-//       const userDetails = await this.clerkService.getUserDetails(data.ownerId);
+      return reservation;
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error?.message,
+        cause: error?.stack,
+      });
+    }
+  }
 
-//       const emailData = {
-//         to: userDetails?.email_addresses[0]?.email_address,
-//         subject: 'Nova Reserva Solicitada',
-//         text: `Você recebeu uma nova solicitação de reserva. A reserva é para o horário ${data.reservedStartTime}.`,
-//         html: `
-//           <p>Você recebeu uma nova solicitação de reserva.</p>
-//           <p>A reserva é de <strong>${data.reservedStartTime}</strong>.</p>
-//           <p>Por favor, acesse o sistema para revisar e aprovar ou rejeitar a reserva.</p>
-//         `,
-//       };
+  async updateReservationStatus(
+    id: string,
+    status: 'requested' | 'approved' | 'rejected' | 'cancelled',
+  ): Promise<Partial<Reservation>> {
+    try {
+      const reservation = await this.reservationModel.findById(id);
 
-//       await this.resendService.sendEmail(
-//         emailData.to,
-//         emailData.subject,
-//         emailData.text,
-//         emailData.html,
-//       );
+      if (!reservation) {
+        throw new InternalServerErrorException('Reservation not found');
+      }
 
-//       return reservation;
-//     } catch (error) {
-//       throw new InternalServerErrorException({
-//         message: error?.message,
-//         cause: error?.stack,
-//       });
-//     }
-//   }
+      if (status === 'approved' && reservation?.status === 'cancelled') {
+        throw new InternalServerErrorException(
+          'It is not possible to approve a reservation that has already been cancelled, please do it again',
+        );
+      }
 
-//   async updateReservationStatus(
-//     id: string,
-//     status: 'requested' | 'approved' | 'rejected' | 'cancelled',
-//   ): Promise<Reservation> {
-//     try {
-//       const reservation = await this.reservationModel.findById(id);
+      reservation.status = status;
+      await reservation.save();
 
-//       if (!reservation) {
-//         throw new InternalServerErrorException('Reservation not found');
-//       }
+      if (status === 'approved' || status === 'requested') {
+        await this.courtService.removeAvailableHour(
+          reservation?.courtId,
+          reservation?.reservedStartTime,
+        );
+      }
 
-//       reservation.status = status;
-//       await reservation.save();
+      if (status === 'cancelled' || status === 'rejected') {
+        await this.courtService.restoreAvailableHour(
+          reservation?.courtId,
+          reservation?.reservedStartTime,
+        );
+      }
 
-//       if (status === 'approved' || status === 'requested') {
-//         await this.courtService.removeAvailableHour(
-//           reservation?.courtId,
-//           reservation?.reservedStartTime,
-//         );
-//       }
+      return reservation;
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error?.message,
+        cause: error?.stack,
+      });
+    }
+  }
 
-//       if (status === 'cancelled' || status === 'rejected') {
-//         await this.courtService.restoreAvailableHour(
-//           reservation?.courtId,
-//           reservation?.reservedStartTime,
-//         );
-//       }
+  async findByOwnerWithPaginationAndStatus(
+    user: UserInterface,
+    { page = 1, limit = 10, status },
+  ): Promise<{ data: Partial<Reservation>[]; total: number }> {
+    try {
+      const query = { ownerId: user?.id, ...(status && { status }) };
 
-//       return reservation;
-//     } catch (error) {
-//       throw new InternalServerErrorException({
-//         message: error?.message,
-//         cause: error?.stack,
-//       });
-//     }
-//   }
+      const [data, total] = await Promise.all([
+        this.reservationModel
+          .find(query)
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .populate({
+            path: 'courtId',
+            select:
+              '_id address neighborhood city number owner_id name availableHours images status createdAt updatedAt',
+          })
+          .exec(),
+        this.reservationModel.countDocuments(query).exec(),
+      ]);
 
-//   async findByOwnerWithPaginationAndStatus(
-//     ownerId: string,
-//     page: number = 1,
-//     limit: number = 10,
-//     status?: string,
-//   ): Promise<{ data: Reservation[]; total: number }> {
-//     try {
-//       const query = { ownerId, ...(status && { status }) };
+      return { data, total };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Failed to fetch reservations',
+        cause: error?.message,
+      });
+    }
+  }
 
-//       const [data, total] = await Promise.all([
-//         this.reservationModel
-//           .find(query)
-//           .skip((page - 1) * limit)
-//           .limit(limit)
-//           .populate({
-//             path: 'courtId',
-//             select:
-//               '_id address neighborhood city number owner_id name availableHours images status createdAt updatedAt',
-//           })
-//           .exec(),
-//         this.reservationModel.countDocuments(query).exec(),
-//       ]);
+  async findByUserWithPaginationAndStatus(
+    user: UserInterface,
+    { page = 1, limit = 10, status },
+  ): Promise<{ data: Partial<Reservation>[]; total: number }> {
+    try {
+      const query = { userId: user?.id, ...(status && { status }) };
 
-//       return { data, total };
-//     } catch (error) {
-//       throw new InternalServerErrorException({
-//         message: 'Failed to fetch reservations',
-//         cause: error?.message,
-//       });
-//     }
-//   }
+      const [data, total] = await Promise.all([
+        this.reservationModel
+          .find(query)
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .populate('courtId')
+          .exec(),
+        this.reservationModel.countDocuments(query).exec(),
+      ]);
 
-//   async findByUserWithPaginationAndStatus(
-//     userId: string,
-//     page: number = 1,
-//     limit: number = 10,
-//     status?: string,
-//   ): Promise<{ data: Reservation[]; total: number }> {
-//     try {
-//       const query = { userId, ...(status && { status }) };
+      return { data, total };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Failed to fetch reservations',
+        cause: error?.message,
+      });
+    }
+  }
 
-//       const [data, total] = await Promise.all([
-//         this.reservationModel
-//           .find(query)
-//           .skip((page - 1) * limit)
-//           .limit(limit)
-//           .populate('courtId')
-//           .exec(),
-//         this.reservationModel.countDocuments(query).exec(),
-//       ]);
+  async cancellingReservaition(id: string): Promise<Partial<Reservation>> {
+    try {
+      const reservation = await this.reservationModel.findById(id);
 
-//       return { data, total };
-//     } catch (error) {
-//       throw new InternalServerErrorException({
-//         message: 'Failed to fetch reservations',
-//         cause: error?.message,
-//       });
-//     }
-//   }
+      if (!reservation) {
+        throw new InternalServerErrorException('Reservation not found');
+      }
 
-//   async cancellingReservaition(id: string): Promise<Reservation> {
-//     try {
-//       const reservation = await this.reservationModel.findById(id);
+      reservation.status = 'requested';
+      await reservation.save();
 
-//       if (!reservation) {
-//         throw new InternalServerErrorException('Reservation not found');
-//       }
+      return reservation;
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error?.message,
+        cause: error?.stack,
+      });
+    }
+  }
 
-//       reservation.status = 'requested';
-//       await reservation.save();
+  async approveCancellation(id: string): Promise<Partial<Reservation>> {
+    try {
+      const reservation = await this.reservationModel.findById(id);
 
-//       const ownerDetails = await this.clerkService.getUserDetails(
-//         reservation.userId,
-//       );
+      if (!reservation) {
+        throw new InternalServerErrorException('Reservation not found');
+      }
 
-//       const emailData = {
-//         to: ownerDetails?.email_addresses[0]?.email_address,
-//         subject: 'Solicitação de Cancelamento de Reserva Recebida',
-//         text: `O usuário ${reservation.userId} solicitou o cancelamento da reserva para o período de ${reservation.reservedStartTime}. Por favor, aprove ou rejeite a solicitação.`,
-//         html: `
-//           <p>O usuário <strong>${reservation.userId}</strong> solicitou o cancelamento da reserva.</p>
-//           <p>Data e hora da reserva: <strong>${reservation.reservedStartTime}</strong>.</p>
-//           <p>Por favor, acesse o sistema para <strong>aprovar ou rejeitar</strong> a solicitação de cancelamento.</p>
-//         `,
-//       };
+      if (reservation.status !== 'requested') {
+        throw new InternalServerErrorException(
+          'Cancellation request not found or already processed',
+        );
+      }
 
-//       await this.resendService.sendEmail(
-//         emailData.to,
-//         emailData.subject,
-//         emailData.text,
-//         emailData.html,
-//       );
+      await this.courtService.restoreAvailableHour(
+        reservation?.courtId,
+        reservation?.reservedStartTime,
+      );
 
-//       return reservation;
-//     } catch (error) {
-//       throw new InternalServerErrorException({
-//         message: error?.message,
-//         cause: error?.stack,
-//       });
-//     }
-//   }
+      reservation.status = 'cancelled';
+      await reservation.save();
 
-//   async approveCancellation(id: string): Promise<Reservation> {
-//     try {
-//       const reservation = await this.reservationModel.findById(id);
-
-//       if (!reservation) {
-//         throw new InternalServerErrorException('Reservation not found');
-//       }
-
-//       if (reservation.status !== 'requested') {
-//         throw new InternalServerErrorException(
-//           'Cancellation request not found or already processed',
-//         );
-//       }
-
-//       reservation.status = 'cancelled';
-//       await reservation.save();
-
-//       const userDetails = await this.clerkService.getUserDetails(
-//         reservation.userId,
-//       );
-
-//       const emailData = {
-//         to: userDetails?.email_addresses[0]?.email_address,
-//         subject: 'Cancelamento de Reserva Aprovado',
-//         text: `Sua solicitação de cancelamento para a reserva no período ${reservation.reservedStartTime} foi aprovada pelo proprietário.`,
-//         html: `
-//           <p>Sua solicitação de cancelamento para a reserva de <strong>${reservation.reservedStartTime}</strong> foi aprovada pelo proprietário.</p>
-//           <p>Se precisar de mais informações, entre em contato com o proprietário.</p>
-//         `,
-//       };
-
-//       await this.resendService.sendEmail(
-//         emailData.to,
-//         emailData.subject,
-//         emailData.text,
-//         emailData.html,
-//       );
-
-//       return reservation;
-//     } catch (error) {
-//       throw new InternalServerErrorException({
-//         message: error?.message,
-//         cause: error?.stack,
-//       });
-//     }
-//   }
-// }
+      return reservation;
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error?.message,
+        cause: error?.stack,
+      });
+    }
+  }
+}

@@ -6,6 +6,7 @@ import { CryptoService } from '../common/crypto/crypto.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { CreateUserDTOInput } from '../users/dtos/create-user.dto';
 import { UserType } from '../../../src/schema/user.schema';
+import { jwtConfig } from './config/jwt.config';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -14,6 +15,10 @@ describe('AuthService', () => {
   let cryptoServiceMock: any;
 
   beforeEach(async () => {
+    process.env.ACCESS_TOKEN_EXPIRATION = '15m';
+    process.env.REFRESH_TOKEN_EXPIRATION = '7d';
+    process.env.ENCRYPTION_KEY = 'random';
+
     usersServiceMock = {
       createUser: jest.fn(),
       getAllUsers: jest.fn(),
@@ -54,16 +59,18 @@ describe('AuthService', () => {
         phone: '1199999999',
         userType: UserType.HOUSE_OWNER,
       };
+
       const hashedPassword = 'hashedPassword';
       const newUser = { id: '1', ...userData };
 
       cryptoServiceMock.encryptPassword.mockReturnValue(hashedPassword);
       usersServiceMock.createUser.mockResolvedValue(newUser);
-      jwtServiceMock.sign.mockReturnValue('access_token');
+      const accessToken = 'access_token';
+
+      jwtServiceMock.sign.mockReturnValueOnce(accessToken);
 
       const result = await service.register(userData);
-
-      expect(result).toEqual({ accessToken: 'access_token' });
+      expect(result).toEqual({ accessToken });
       expect(cryptoServiceMock.encryptPassword).toHaveBeenCalledWith(
         userData.password,
       );
@@ -71,7 +78,14 @@ describe('AuthService', () => {
         ...userData,
         password: hashedPassword,
       });
-      expect(jwtServiceMock.sign).toHaveBeenCalledWith({ id: newUser.id });
+      const payload = {
+        email: userData.email,
+        sub: '1',
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        userType: userData.userType,
+      };
+      expect(jwtServiceMock.sign).toHaveBeenCalledWith(payload);
     });
   });
 
@@ -135,18 +149,29 @@ describe('AuthService', () => {
         lastName: 'Doe',
         userType: 'admin',
       };
-      jwtServiceMock.sign.mockReturnValue('access_token');
+      jwtServiceMock.sign
+        .mockReturnValue('access_token')
+        .mockReturnValue('refresh_token');
 
       const result = await service.login(user);
 
-      expect(result).toEqual({ accessToken: 'access_token' });
-      expect(jwtServiceMock.sign).toHaveBeenCalledWith({
-        email: user.email,
-        sub: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        userType: user.userType,
+      expect(result).toEqual({
+        accessToken: 'refresh_token',
+        refreshToken: 'refresh_token',
       });
+      expect(jwtServiceMock.sign).toHaveBeenCalledWith(
+        {
+          email: user.email,
+          sub: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          userType: user.userType,
+        },
+        {
+          secret: undefined,
+          expiresIn: jwtConfig.accessTokenExpiration,
+        },
+      );
     });
   });
 });

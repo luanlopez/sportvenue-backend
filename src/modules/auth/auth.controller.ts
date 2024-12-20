@@ -64,4 +64,32 @@ export class AuthController {
 
     return this.authService.login(user);
   }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh the JWT token' })
+  @ApiBody({
+    description: 'Provide the refresh token',
+    schema: {
+      type: 'object',
+      properties: { refreshToken: { type: 'string' } },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens refreshed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        access_token: { type: 'string' },
+        refresh_token: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized. Invalid refresh token.',
+  })
+  async refreshToken(@Body() { refreshToken }: { refreshToken: string }) {
+    return this.authService.refreshToken(refreshToken);
+  }
 }
