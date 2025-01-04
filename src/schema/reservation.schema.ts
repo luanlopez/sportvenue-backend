@@ -6,6 +6,8 @@ export interface Reservation extends Document {
   courtId: Schema.Types.ObjectId;
   reservedStartTime: string;
   status: 'requested' | 'approved' | 'rejected' | 'cancelled';
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const ReservationSchema = new Schema<Reservation>(

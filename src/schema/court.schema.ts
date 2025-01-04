@@ -13,6 +13,9 @@ export interface Court extends Document {
   neighborhood: string;
   city: string;
   number: string;
+  amenities: string[];
+  categories: string[];
+  price_per_hour: number;
 }
 
 export const CourtSchema = new Schema({

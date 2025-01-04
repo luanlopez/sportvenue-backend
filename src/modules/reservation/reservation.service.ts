@@ -91,11 +91,8 @@ export class ReservationService {
           .find(query)
           .skip((page - 1) * limit)
           .limit(limit)
-          .populate({
-            path: 'courtId',
-            select:
-              '_id address neighborhood city number owner_id name availableHours images status createdAt updatedAt',
-          })
+          .populate('courtId')
+          .populate('userId')
           .exec(),
         this.reservationModel.countDocuments(query).exec(),
       ]);
@@ -122,6 +119,7 @@ export class ReservationService {
           .skip((page - 1) * limit)
           .limit(limit)
           .populate('courtId')
+          .populate('userId')
           .exec(),
         this.reservationModel.countDocuments(query).exec(),
       ]);

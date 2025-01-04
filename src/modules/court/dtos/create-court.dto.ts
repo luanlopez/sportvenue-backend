@@ -1,5 +1,8 @@
 import { IsString, IsArray, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, IsEnum, IsNotEmpty } from 'class-validator';
+import { CourtAmenities } from '../enums/court-amenities.enum';
+import { CourtCategories } from '../enums/court-categories.enum';
 
 export class CreateCourtDTO {
   @ApiProperty({
@@ -31,11 +34,12 @@ export class CreateCourtDTO {
   number: string;
 
   @ApiProperty({
-    description: 'The owner ID of the court',
-    example: '123456',
+    description: 'The ID of the court owner',
+    example: '507f1f77bcf86cd799439011',
   })
   @IsString()
-  owner_id: string;
+  @IsNotEmpty()
+  ownerId: string;
 
   @ApiProperty({
     description: 'The name of the court',
@@ -59,4 +63,32 @@ export class CreateCourtDTO {
   @IsOptional()
   @IsString()
   reason?: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  description: string;
+
+  @ApiProperty()
+  @IsNumber()
+  price_per_hour: number;
+
+  @ApiProperty({ enum: CourtAmenities, isArray: true })
+  @IsArray()
+  @IsEnum(CourtAmenities, { each: true })
+  amenities: CourtAmenities[];
+
+  @ApiProperty({ enum: CourtCategories, isArray: true })
+  @IsArray()
+  @IsEnum(CourtCategories, { each: true })
+  categories: CourtCategories[];
+
+  @ApiProperty({
+    description: 'Array of image URLs for the court',
+    example: ['http://example.com/image1.jpg', 'http://example.com/image2.jpg'],
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  images: string[];
 }

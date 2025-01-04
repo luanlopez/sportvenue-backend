@@ -1,7 +1,17 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UnauthorizedException,
+  Get,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateUserDTOInput } from '../users/dtos/create-user.dto';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { UserProfileDto } from './dtos/user-profile.dto';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -91,5 +101,12 @@ export class AuthController {
   })
   async refreshToken(@Body() { refreshToken }: { refreshToken: string }) {
     return this.authService.refreshToken(refreshToken);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async getProfile(@Request() req): Promise<UserProfileDto> {
+    const user = await this.authService.me(req.user);
+    return user;
   }
 }

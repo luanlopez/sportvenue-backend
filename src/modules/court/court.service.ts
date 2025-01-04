@@ -11,6 +11,7 @@ import { ImageKitService } from '../common/imagekit/imagekit.service';
 import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 import { GetCourtDTO } from './dtos/get-court.dto';
 import { CourtDTO, GetCourtsResponseDTO } from './dtos/list-courts.dto';
+import { CourtCategories } from './enums/court-categories.enum';
 
 @Injectable()
 export class CourtService {
@@ -45,9 +46,15 @@ export class CourtService {
   ): Promise<void> {
     try {
       const uploadResponses = await this.imageKitService.uploadFiles(images);
-      await this.courtModel.findByIdAndUpdate(courtId, {
-        $set: { images: uploadResponses.map((res) => res.url) },
-      });
+      const newImageUrls = uploadResponses.map((res) => res.url);
+
+      await this.courtModel.findByIdAndUpdate(
+        courtId,
+        {
+          $push: { images: { $each: newImageUrls } },
+        },
+        { new: true },
+      );
     } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to upload images',
@@ -83,6 +90,9 @@ export class CourtService {
         status: court.status,
         createdAt: court.createdAt.toISOString(),
         updatedAt: court.updatedAt.toISOString(),
+        amenities: court.amenities,
+        categories: court.categories,
+        price_per_hour: court.price_per_hour,
         __v: court.__v,
         user: {
           name: `${userDetails?.firstName} ${userDetails?.lastName ? userDetails?.lastName : ''}`,
@@ -93,7 +103,6 @@ export class CourtService {
 
       return courtsWithUserDetails;
     } catch (error) {
-      console.log(error)
       throw new InternalServerErrorException({
         message: 'Failed to get court with image details',
         cause: error?.message,
@@ -105,18 +114,23 @@ export class CourtService {
     id: string,
     page: number = 1,
     limit: number = 10,
-    name?: string,
-    address?: string,
+    search?: string,
+    sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
     try {
       const query: any = { ownerId: id };
-      const filters = { name, address };
 
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
-          query[key] = new RegExp(value, 'i');
-        }
-      });
+      if (search) {
+        query.$or = [
+          { name: new RegExp(search, 'i') },
+          { address: new RegExp(search, 'i') },
+          { neighborhood: new RegExp(search, 'i') },
+        ];
+      }
+
+      if (sport) {
+        query.categories = { $in: [sport] };
+      }
 
       const total = await this.courtModel.countDocuments(query).exec();
 
@@ -167,18 +181,23 @@ export class CourtService {
   async getCourtsWithPagination(
     page: number = 1,
     limit: number = 10,
-    name?: string,
-    address?: string,
+    search?: string,
+    sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
     try {
       const query: any = {};
-      const filters = { name, address };
 
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
-          query[key] = new RegExp(value, 'i');
-        }
-      });
+      if (search) {
+        query.$or = [
+          { name: new RegExp(search, 'i') },
+          { address: new RegExp(search, 'i') },
+          { neighborhood: new RegExp(search, 'i') },
+        ];
+      }
+
+      if (sport) {
+        query.categories = { $in: [sport] };
+      }
 
       const total = await this.courtModel.countDocuments(query).exec();
 
@@ -205,6 +224,9 @@ export class CourtService {
           status: court.status,
           createdAt: court.createdAt.toISOString(),
           updatedAt: court.updatedAt.toISOString(),
+          amenities: court.amenities,
+          categories: court.categories,
+          price_per_hour: court.price_per_hour,
           __v: court.__v,
           user: {
             name: `${userDetails?.firstName} ${userDetails?.lastName ? userDetails?.lastName : ''}`,
@@ -345,6 +367,29 @@ export class CourtService {
     } catch (error) {
       throw new InternalServerErrorException({
         message: 'Failed to cancel court hour',
+        cause: error?.message,
+      });
+    }
+  }
+
+  async removeImage(courtId: string, updatedImages: string[]): Promise<Court> {
+    try {
+      const updatedCourt = await this.courtModel.findByIdAndUpdate(
+        courtId,
+        {
+          $set: { images: updatedImages },
+        },
+        { new: true },
+      );
+
+      if (!updatedCourt) {
+        throw new NotFoundException('Court not found');
+      }
+
+      return updatedCourt;
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Failed to update images',
         cause: error?.message,
       });
     }

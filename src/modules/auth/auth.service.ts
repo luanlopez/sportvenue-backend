@@ -4,6 +4,7 @@ import { UsersService } from '../users/users.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { CreateUserDTOInput } from '../users/dtos/create-user.dto';
 import { jwtConfig } from './config/jwt.config';
+import { UserProfileDto } from './dtos/user-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +35,20 @@ export class AuthService {
     });
 
     return { accessToken: token };
+  }
+
+  async me(user: any): Promise<UserProfileDto> {
+    const userFinded = await this.usersService.getUserById(user.id);
+
+    return {
+      id: userFinded.id,
+      email: userFinded.email,
+      name: userFinded.firstName + ' ' + userFinded.lastName,
+      userType: userFinded.userType,
+      phone: userFinded.phone,
+      created_at: userFinded.createdAt,
+      updated_at: userFinded.updatedAt,
+    };
   }
 
   async validateUser(email: string, password: string): Promise<any> {

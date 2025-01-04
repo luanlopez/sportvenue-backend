@@ -17,6 +17,7 @@ import { CourtService } from './court.service';
 import { CreateCourtDTO } from './dtos/create-court.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import {
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -30,6 +31,7 @@ import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 import { GetCourtsResponseDTO } from './dtos/list-courts.dto';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { CourtCategories } from './enums/court-categories.enum';
 
 @ApiTags('Courts')
 @Controller('courts')
@@ -106,29 +108,19 @@ export class CourtController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('USER')
   @ApiOperation({ summary: 'Get a list of all courts' })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({
-    name: 'page',
-    required: false,
-    type: Number,
-    description: 'Page number for pagination',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Number of courts per page',
-  })
-  @ApiQuery({
-    name: 'name',
+    name: 'search',
     required: false,
     type: String,
-    description: 'Filter courts by name',
+    description: 'Search in name, address and neighborhood',
   })
   @ApiQuery({
-    name: 'address',
+    name: 'category',
     required: false,
-    type: String,
-    description: 'Filter courts by address',
+    enum: CourtCategories,
+    description: 'Filter courts by category',
   })
   @ApiResponse({
     status: 200,
@@ -138,14 +130,14 @@ export class CourtController {
   async getAllCourts(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
-    @Query('name') name?: string,
-    @Query('address') address?: string,
+    @Query('search') search?: string,
+    @Query('sport') sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
     return this.courtService.getCourtsWithPagination(
       page,
       limit,
-      name,
-      address,
+      search,
+      sport,
     );
   }
 
@@ -153,22 +145,20 @@ export class CourtController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('HOUSE_OWNER')
   @ApiOperation({ summary: 'Get all courts by owner ID' })
-  @ApiParam({
-    name: 'id',
+  @ApiParam({ name: 'id', type: String })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({
+    name: 'search',
+    required: false,
     type: String,
-    description: 'The owner ID to filter courts by',
+    description: 'Search in name, address and neighborhood',
   })
   @ApiQuery({
-    name: 'page',
+    name: 'category',
     required: false,
-    type: Number,
-    description: 'Page number for pagination',
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Number of courts per page',
+    enum: CourtCategories,
+    description: 'Filter courts by category',
   })
   @ApiResponse({
     status: 200,
@@ -179,15 +169,15 @@ export class CourtController {
     @Param('id') courtId: string,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
-    @Query('name') name?: string,
-    @Query('address') address?: string,
+    @Query('search') search?: string,
+    @Query('sport') sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
     return this.courtService.getCourtsByOwnerWithPagination(
       courtId,
       page,
       limit,
-      name,
-      address,
+      search,
+      sport,
     );
   }
 
@@ -262,5 +252,33 @@ export class CourtController {
   })
   async activateCourt(@Param('id') courtId: string) {
     return this.courtService.activateCourt(courtId);
+  }
+
+  @Delete(':id/images')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Atualiza a lista de imagens da quadra' })
+  @ApiParam({ name: 'id', description: 'ID da quadra' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        images: {
+          type: 'array',
+          items: {
+            type: 'string',
+          },
+          example: [
+            'https://example.com/image1.jpg',
+            'https://example.com/image2.jpg',
+          ],
+        },
+      },
+    },
+  })
+  async removeImage(
+    @Param('id') id: string,
+    @Body('images') images: string[],
+  ): Promise<any> {
+    return this.courtService.removeImage(id, images);
   }
 }

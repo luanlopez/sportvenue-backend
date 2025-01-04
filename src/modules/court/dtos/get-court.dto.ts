@@ -87,4 +87,22 @@ export class GetCourtDTO {
     description: 'User details associated with the court',
   })
   user: UserDTO;
+
+  @ApiProperty({
+    example: ['Piso de concreto', 'Iluminação', 'Área de descanso'],
+    description: 'List of amenities for the court',
+  })
+  amenities: string[];
+
+  @ApiProperty({
+    example: ['Futebol', 'Vôlei', 'Basquete'],
+    description: 'List of categories for the court',
+  })
+  categories: string[];
+
+  @ApiProperty({
+    example: 100,
+    description: 'Price per hour for the court',
+  })
+  price_per_hour: number;
 }
