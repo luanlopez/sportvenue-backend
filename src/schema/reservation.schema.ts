@@ -4,6 +4,7 @@ export interface Reservation extends Document {
   ownerId: Schema.Types.ObjectId;
   userId: Schema.Types.ObjectId;
   courtId: Schema.Types.ObjectId;
+  dayOfWeek: string;
   reservedStartTime: string;
   status: 'requested' | 'approved' | 'rejected' | 'cancelled';
   createdAt: Date;
@@ -26,6 +27,19 @@ export const ReservationSchema = new Schema<Reservation>(
       type: Schema.Types.ObjectId,
       ref: 'Court',
       required: true,
+    },
+    dayOfWeek: {
+      type: String,
+      required: true,
+      enum: [
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+        'sunday',
+      ],
     },
     reservedStartTime: {
       type: Schema.Types.String,

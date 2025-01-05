@@ -1,10 +1,20 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { CryptoService } from '../common/crypto/crypto.service';
-import { CreateUserDTOInput } from '../users/dtos/create-user.dto';
 import { jwtConfig } from './config/jwt.config';
 import { UserProfileDto } from './dtos/user-profile.dto';
+import { PreRegisterDTO } from './dtos/pre-register.dto';
+import { VerifyRegistrationDTO } from './dtos/verify-registration.dto';
+import { Model } from 'mongoose';
+import { ResendService } from '../common/resend/resend.service';
+import { InjectModel } from '@nestjs/mongoose';
+import { VerificationCode } from 'src/schema/verification-code.schema';
+import { UserType } from 'src/schema/user.schema';
 
 @Injectable()
 export class AuthService {
@@ -12,19 +22,71 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly cryptoService: CryptoService,
+    private readonly resendService: ResendService,
+    @InjectModel('VerificationCode')
+    private readonly verificationModel: Model<VerificationCode>,
   ) {}
 
-  async register(
-    userData: CreateUserDTOInput,
+  async preRegister(
+    preRegisterDto: PreRegisterDTO,
+  ): Promise<{ message: string }> {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+
+    const verificationCode = new this.verificationModel({
+      email: preRegisterDto.email,
+      code,
+      expiresAt,
+      userData: {
+        firstName: preRegisterDto.firstName,
+        lastName: preRegisterDto.lastName,
+        userType: preRegisterDto.userType,
+        phone: preRegisterDto.phone,
+        password: preRegisterDto.password,
+      },
+    });
+
+    await verificationCode.save();
+
+    await this.resendService.sendEmail(
+      preRegisterDto.email,
+      'Complete seu cadastro',
+      preRegisterDto.firstName,
+      code,
+    );
+
+    return { message: 'Verification code sent to email' };
+  }
+
+  async completeRegistration(
+    verifyDto: VerifyRegistrationDTO,
   ): Promise<{ accessToken: string }> {
+    const verification = await this.verificationModel.findOne({
+      code: verifyDto.code,
+      isUsed: false,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!verification) {
+      throw new BadRequestException('Invalid or expired verification code');
+    }
+
     const hashedPassword = this.cryptoService.encryptPassword(
-      userData.password,
+      verification?.userData?.password,
     );
 
     const newUser = await this.usersService.createUser({
-      ...userData,
+      email: verification.email,
       password: hashedPassword,
+      phone: verification.userData.phone,
+      firstName: verification.userData.firstName,
+      lastName: verification.userData.lastName,
+      userType: verification.userData.userType as UserType,
     });
+
+    verification.isUsed = true;
+    await verification.save();
 
     const token = this.jwtService.sign({
       email: newUser.email,

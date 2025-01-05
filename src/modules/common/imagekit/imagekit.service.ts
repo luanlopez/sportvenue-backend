@@ -26,7 +26,6 @@ export class ImageKitService {
         });
         return response;
       } catch (error) {
-        console.error(`Error uploading file ${file.originalname}:`, error);
         throw new InternalServerErrorException({
           message: `Error uploading file ${file.originalname}: ${error.message}`,
           cause: error.stack,
@@ -49,7 +48,6 @@ export class ImageKitService {
       const response = await this.imagekit.getFileDetails(fileId);
       return response;
     } catch (error) {
-      console.error('Error fetching file details:', error);
       throw new InternalServerErrorException({
         message: `Error fetching file details for fileId ${fileId}: ${error.message}`,
         cause: error.stack,
@@ -62,7 +60,6 @@ export class ImageKitService {
       const response = await this.imagekit.deleteFile(fileId);
       return response;
     } catch (error) {
-      console.error('Error deleting file:', error);
       throw new InternalServerErrorException({
         message: `Error deleting file with fileId ${fileId}: ${error.message}`,
         cause: error.stack,

@@ -80,19 +80,20 @@ export class CourtService {
       const courtsWithUserDetails: GetCourtDTO = {
         _id: court._id.toString(),
         address: court.address,
+        description: court.description,
         neighborhood: court.neighborhood,
         city: court.city,
         number: court.number,
         owner_id: String(userDetails._id),
         name: court.name,
-        availableHours: court.availableHours,
+        weeklySchedule: court.weeklySchedule,
         images: court.images,
         status: court.status,
         createdAt: court.createdAt.toISOString(),
         updatedAt: court.updatedAt.toISOString(),
         amenities: court.amenities,
         categories: court.categories,
-        price_per_hour: court.price_per_hour,
+        pricePerHour: court.pricePerHour,
         __v: court.__v,
         user: {
           name: `${userDetails?.firstName} ${userDetails?.lastName ? userDetails?.lastName : ''}`,
@@ -147,17 +148,17 @@ export class CourtService {
         return {
           _id: court._id.toString(),
           address: court.address,
+          description: court.description,
           neighborhood: court.neighborhood,
           city: court.city,
           number: court.number,
-          owner_id: String(userDetails._id),
           name: court.name,
-          availableHours: court.availableHours,
+          weeklySchedule: court.weeklySchedule,
           images: court.images,
           status: court.status,
-          createdAt: court.createdAt.toISOString(),
-          updatedAt: court.updatedAt.toISOString(),
-          __v: court.__v,
+          pricePerHour: court.pricePerHour,
+          amenities: court.amenities,
+          categories: court.categories,
           user: {
             name: `${userDetails?.firstName} ${userDetails?.lastName ? userDetails?.lastName : ''}`,
             email: userDetails?.email,
@@ -214,19 +215,20 @@ export class CourtService {
         return {
           _id: court._id.toString(),
           address: court.address,
+          description: court.description,
           neighborhood: court.neighborhood,
           city: court.city,
           number: court.number,
           owner_id: String(userDetails._id),
           name: court.name,
-          availableHours: court.availableHours,
+          weeklySchedule: court.weeklySchedule,
           images: court.images,
           status: court.status,
           createdAt: court.createdAt.toISOString(),
           updatedAt: court.updatedAt.toISOString(),
           amenities: court.amenities,
           categories: court.categories,
-          price_per_hour: court.price_per_hour,
+          pricePerHour: court.pricePerHour,
           __v: court.__v,
           user: {
             name: `${userDetails?.firstName} ${userDetails?.lastName ? userDetails?.lastName : ''}`,
@@ -326,12 +328,18 @@ export class CourtService {
     }
   }
 
-  async removeAvailableHour(courtId: ObjectId, hour: string): Promise<Court> {
+  async removeAvailableHour(
+    courtId: ObjectId,
+    dayOfWeek: string,
+    hour: string,
+  ): Promise<Court> {
     try {
+      const weeklyScheduleField = `weeklySchedule.${dayOfWeek.toLowerCase()}`;
+
       const updatedCourt = await this.courtModel
         .findByIdAndUpdate(
           courtId,
-          { $pull: { availableHours: hour } },
+          { $pull: { [weeklyScheduleField]: hour } },
           { new: true },
         )
         .exec();
@@ -343,18 +351,23 @@ export class CourtService {
       return updatedCourt;
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'Failed to approve court hour',
+        message: 'Failed to remove court hour',
         cause: error?.message,
       });
     }
   }
 
-  async restoreAvailableHour(courtId: ObjectId, hour: string): Promise<Court> {
+  async restoreAvailableHour(
+    courtId: ObjectId,
+    dayOfWeek: string,
+    hour: string,
+  ): Promise<Court> {
     try {
+      const weeklyScheduleField = `weeklySchedule.${dayOfWeek.toLowerCase()}`;
       const updatedCourt = await this.courtModel
         .findByIdAndUpdate(
           courtId,
-          { $addToSet: { availableHours: hour } },
+          { $addToSet: { [weeklyScheduleField]: hour } },
           { new: true },
         )
         .exec();
@@ -366,7 +379,7 @@ export class CourtService {
       return updatedCourt;
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'Failed to cancel court hour',
+        message: 'Failed to restore court hour',
         cause: error?.message,
       });
     }

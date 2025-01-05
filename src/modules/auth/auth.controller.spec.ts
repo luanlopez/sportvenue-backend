@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UnauthorizedException } from '@nestjs/common';
-import { CreateUserDTOInput } from '../users/dtos/create-user.dto';
 import { UserType } from '../../../src/schema/user.schema';
+import { PreRegisterDTO } from './dtos/pre-register.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -14,6 +14,7 @@ describe('AuthController', () => {
       register: jest.fn(),
       validateUser: jest.fn(),
       login: jest.fn(),
+      preRegister: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -28,25 +29,22 @@ describe('AuthController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('register', () => {
-    it('should register a new user and return access token', async () => {
-      const userData: CreateUserDTOInput = {
+  describe('preRegister', () => {
+    it('should preRegister a new user and return access token', async () => {
+      const userData: PreRegisterDTO = {
         email: 'test@example.com',
-        password: 'password',
         firstName: 'John',
         lastName: 'Doe',
+        password: 'password',
         phone: '1199999999',
         userType: UserType.HOUSE_OWNER,
       };
 
-      const mockToken = { accessToken: 'mock_token' };
+      authServiceMock.preRegister.mockResolvedValue(undefined);
 
-      authServiceMock.register.mockResolvedValue(mockToken);
+      const result = await controller.preRegister(userData);
 
-      const result = await controller.register(userData);
-
-      expect(result).toEqual(mockToken);
-      expect(authServiceMock.register).toHaveBeenCalledWith(userData);
+      expect(result).toEqual(undefined);
     });
   });
 

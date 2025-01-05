@@ -4,15 +4,16 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { UnauthorizedException } from '@nestjs/common';
-import { CreateUserDTOInput } from '../users/dtos/create-user.dto';
-import { UserType } from '../../../src/schema/user.schema';
 import { jwtConfig } from './config/jwt.config';
+import { ResendService } from '../common/resend/resend.service';
+import { getModelToken } from '@nestjs/mongoose';
 
 describe('AuthService', () => {
   let service: AuthService;
   let usersServiceMock: any;
   let jwtServiceMock: any;
   let cryptoServiceMock: any;
+  let resendServiceMock: any;
 
   beforeEach(async () => {
     process.env.ACCESS_TOKEN_EXPIRATION = '15m';
@@ -33,12 +34,20 @@ describe('AuthService', () => {
       decryptPassword: jest.fn(),
     };
 
+    resendServiceMock = {
+      sendEmail: jest.fn(),
+      sendReservationNotification: jest.fn(),
+      sendReservationStatusNotification: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UsersService, useValue: usersServiceMock },
         { provide: JwtService, useValue: jwtServiceMock },
         { provide: CryptoService, useValue: cryptoServiceMock },
+        { provide: ResendService, useValue: resendServiceMock },
+        { provide: getModelToken('VerificationCode'), useValue: {} },
       ],
     }).compile();
 
@@ -47,46 +56,6 @@ describe('AuthService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
-  });
-
-  describe('register', () => {
-    it('should register a new user and return an access token', async () => {
-      const userData: CreateUserDTOInput = {
-        email: 'test@example.com',
-        password: 'password',
-        firstName: 'John',
-        lastName: 'Doe',
-        phone: '1199999999',
-        userType: UserType.HOUSE_OWNER,
-      };
-
-      const hashedPassword = 'hashedPassword';
-      const newUser = { id: '1', ...userData };
-
-      cryptoServiceMock.encryptPassword.mockReturnValue(hashedPassword);
-      usersServiceMock.createUser.mockResolvedValue(newUser);
-      const accessToken = 'access_token';
-
-      jwtServiceMock.sign.mockReturnValueOnce(accessToken);
-
-      const result = await service.register(userData);
-      expect(result).toEqual({ accessToken });
-      expect(cryptoServiceMock.encryptPassword).toHaveBeenCalledWith(
-        userData.password,
-      );
-      expect(usersServiceMock.createUser).toHaveBeenCalledWith({
-        ...userData,
-        password: hashedPassword,
-      });
-      const payload = {
-        email: userData.email,
-        sub: '1',
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        userType: userData.userType,
-      };
-      expect(jwtServiceMock.sign).toHaveBeenCalledWith(payload);
-    });
   });
 
   describe('validateUser', () => {

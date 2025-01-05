@@ -8,32 +8,15 @@ import {
   Request,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateUserDTOInput } from '../users/dtos/create-user.dto';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UserProfileDto } from './dtos/user-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { PreRegisterDTO } from './dtos/pre-register.dto';
+import { VerifyRegistrationDTO } from './dtos/verify-registration.dto';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-  @Post('register')
-  @ApiOperation({ summary: 'Register a new user' })
-  @ApiBody({
-    description: 'User registration data',
-    type: CreateUserDTOInput,
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'User successfully registered',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request. Invalid data provided.',
-  })
-  async register(@Body() userData: CreateUserDTOInput) {
-    return this.authService.register(userData);
-  }
 
   @Post('login')
   @ApiOperation({ summary: 'Login and obtain a JWT token' })
@@ -108,5 +91,19 @@ export class AuthController {
   async getProfile(@Request() req): Promise<UserProfileDto> {
     const user = await this.authService.me(req.user);
     return user;
+  }
+
+  @Post('pre-register')
+  @ApiOperation({ summary: 'Start registration process' })
+  @ApiResponse({ status: 201, description: 'Verification code sent' })
+  async preRegister(@Body() preRegisterDto: PreRegisterDTO) {
+    return this.authService.preRegister(preRegisterDto);
+  }
+
+  @Post('complete-registration')
+  @ApiOperation({ summary: 'Complete registration with verification code' })
+  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  async completeRegistration(@Body() verifyDto: VerifyRegistrationDTO) {
+    return this.authService.completeRegistration(verifyDto);
   }
 }

@@ -9,6 +9,8 @@ import { GetCourtDTO } from './dtos/get-court.dto';
 import { Court } from 'src/schema/court.schema';
 import { GetCourtsResponseDTO } from './dtos/list-courts.dto';
 import { BadRequestException } from '@nestjs/common';
+import { CourtAmenities } from './enums/court-amenities.enum';
+import { CourtCategories } from './enums/court-categories.enum';
 
 describe('CourtController', () => {
   let courtController: CourtController;
@@ -55,7 +57,10 @@ describe('CourtController', () => {
         _id: '66e9dd3eba8209611a170971',
         address: '123 Main Street',
         name: 'Central Court',
-        availableHours: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+        weeklySchedule: {
+          monday: ['08:00', '09:00'],
+          tuesday: ['08:00', '09:00'],
+        },
         images: ['https://example.com/image.png'],
         createdAt: new Date('2024-09-17T19:49:18.518Z'),
         updatedAt: new Date('2024-09-17T19:49:18.518Z'),
@@ -64,6 +69,10 @@ describe('CourtController', () => {
         neighborhood: 'Downtown',
         city: 'New York',
         number: '45A',
+        amenities: [CourtAmenities.WIFI, CourtAmenities.PARKING],
+        categories: [CourtCategories.FUTSAL, CourtCategories.BASKETBALL],
+        pricePerHour: 100,
+        description: 'A great court in downtown',
       };
 
       const createCourtDTO: CreateCourtDTO = {
@@ -71,10 +80,17 @@ describe('CourtController', () => {
         neighborhood: 'Downtown',
         city: 'New York',
         number: '45A',
-        owner_id: '123456',
         name: 'Central Court',
-        availableHours: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
         reason: 'Opening a new court in the city center',
+        description: 'A great court in downtown',
+        price_per_hour: 100,
+        amenities: [CourtAmenities.WIFI, CourtAmenities.PARKING],
+        categories: [CourtCategories.FUTSAL, CourtCategories.BASKETBALL],
+        images: ['https://example.com/image.png'],
+        weeklySchedule: {
+          monday: ['08:00', '09:00'],
+          tuesday: ['08:00', '09:00'],
+        },
       };
 
       const user: UserInterface = {
@@ -126,7 +142,19 @@ describe('CourtController', () => {
         number: '130/262',
         owner_id: 'user_2lX2f8JuZMKeTlKjBQ4oia4JItX',
         name: 'Campo do Imperial',
-        availableHours: ['20:00', '21:00'],
+        weeklySchedule: {
+          monday: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+          tuesday: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+          wednesday: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+          thursday: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+          friday: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+          saturday: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+          sunday: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
+        },
+        description: 'Description',
+        pricePerHour: 100,
+        amenities: [CourtAmenities.WIFI, CourtAmenities.PARKING],
+        categories: [CourtCategories.FUTSAL, CourtCategories.BASKETBALL],
         images: [
           'https://ik.imagekit.io/pqxf1vesz/uploads/qa_evidencia_fk_202_4hiQZCfb1A.png',
         ],
@@ -159,7 +187,7 @@ describe('CourtController', () => {
         page: 1,
         limit: 10,
         name: 'Central',
-        address: 'Downtown',
+        sport: CourtCategories.FUTSAL,
       };
 
       const paginatedResult: GetCourtsResponseDTO = {
@@ -175,14 +203,14 @@ describe('CourtController', () => {
         query.page,
         query.limit,
         query.name,
-        query.address,
+        query.sport,
       );
 
       expect(courtService.getCourtsWithPagination).toHaveBeenCalledWith(
         query.page,
         query.limit,
         query.name,
-        query.address,
+        query.sport,
       );
 
       expect(result).toEqual(paginatedResult);
@@ -197,10 +225,17 @@ describe('CourtController', () => {
         neighborhood: 'Downtown',
         city: 'New York',
         number: '45A',
-        owner_id: '123456',
         name: 'Updated Court',
-        availableHours: ['10:00 AM - 12:00 PM'],
         reason: 'Updating court details',
+        description: 'Updated description',
+        price_per_hour: 150,
+        amenities: [CourtAmenities.WIFI, CourtAmenities.PARKING],
+        categories: [CourtCategories.FUTSAL, CourtCategories.BASKETBALL],
+        images: ['https://example.com/image.png'],
+        weeklySchedule: {
+          monday: ['08:00', '09:00'],
+          tuesday: ['08:00', '09:00'],
+        },
       };
 
       jest.spyOn(courtService, 'updateCourt').mockResolvedValueOnce(undefined);
@@ -234,7 +269,6 @@ describe('CourtController', () => {
         _id: '66e9dd3eba8209611a170971',
         address: '123 Main Street',
         name: 'Central Court',
-        availableHours: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
         images: ['https://example.com/image.png'],
         createdAt: new Date('2024-09-17T19:49:18.518Z'),
         updatedAt: new Date('2024-09-17T19:49:18.518Z'),
@@ -263,11 +297,10 @@ describe('CourtController', () => {
         _id: '66e9dd3eba8209611a170971',
         address: '123 Main Street',
         name: 'Central Court',
-        availableHours: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
         images: ['https://example.com/image.png'],
         createdAt: new Date('2024-09-17T19:49:18.518Z'),
         updatedAt: new Date('2024-09-17T19:49:18.518Z'),
-        status: false,
+        status: true,
         reason: 'Opening a new court in the city center',
         neighborhood: 'Downtown',
         city: 'New York',

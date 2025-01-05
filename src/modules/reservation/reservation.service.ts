@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { Reservation } from 'src/schema/reservation.schema';
 import { CreateReservationDTO } from './dtos/create-reservation.dto';
 import { CourtService } from '../court/court.service';
+import { ResendService } from '../common/resend/resend.service';
 import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class ReservationService {
     @InjectModel('Reservation')
     private readonly reservationModel: Model<Reservation>,
     private readonly courtService: CourtService,
+    private readonly resendService: ResendService,
   ) {}
 
   async create(
@@ -19,6 +21,8 @@ export class ReservationService {
     data: CreateReservationDTO,
   ): Promise<Partial<Reservation>> {
     try {
+      const court = await this.courtService.getCourtByID(data.courtId);
+
       const createdReservationData = new this.reservationModel({
         ...data,
         userId: user?.id,
@@ -26,6 +30,18 @@ export class ReservationService {
       });
 
       const reservation = await createdReservationData.save();
+
+      await this.resendService.sendReservationNotification(
+        court.user.email,
+        court.user.name.split(' ')[0],
+        court.name,
+        data.dayOfWeek,
+        data.reservedStartTime,
+        {
+          name: `${user.firstName} ${user.lastName}`,
+          phone: court.user.phone,
+        },
+      );
 
       return reservation;
     } catch (error) {
@@ -41,7 +57,10 @@ export class ReservationService {
     status: 'requested' | 'approved' | 'rejected' | 'cancelled',
   ): Promise<Partial<Reservation>> {
     try {
-      const reservation = await this.reservationModel.findById(id);
+      const reservation = await this.reservationModel
+        .findById(id)
+        .populate('userId')
+        .populate('courtId');
 
       if (!reservation) {
         throw new InternalServerErrorException('Reservation not found');
@@ -56,9 +75,24 @@ export class ReservationService {
       reservation.status = status;
       await reservation.save();
 
+      if (status === 'approved' || status === 'rejected') {
+        const user: any = reservation.userId;
+        const court: any = reservation.courtId;
+
+        await this.resendService.sendReservationStatusNotification(
+          user.email,
+          `${user.firstName} ${user.lastName}`,
+          court.name,
+          reservation.dayOfWeek,
+          reservation.reservedStartTime,
+          status,
+        );
+      }
+
       if (status === 'approved' || status === 'requested') {
         await this.courtService.removeAvailableHour(
           reservation?.courtId,
+          reservation?.dayOfWeek,
           reservation?.reservedStartTime,
         );
       }
@@ -66,6 +100,7 @@ export class ReservationService {
       if (status === 'cancelled' || status === 'rejected') {
         await this.courtService.restoreAvailableHour(
           reservation?.courtId,
+          reservation?.dayOfWeek,
           reservation?.reservedStartTime,
         );
       }
@@ -169,6 +204,7 @@ export class ReservationService {
 
       await this.courtService.restoreAvailableHour(
         reservation?.courtId,
+        reservation?.dayOfWeek,
         reservation?.reservedStartTime,
       );
 

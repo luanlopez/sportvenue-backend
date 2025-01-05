@@ -7,6 +7,9 @@ import { AuthController } from './auth.controller';
 import { CryptoCommon } from '../common/crypto/crypto.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { MongooseModule } from '@nestjs/mongoose';
+import { VerificationCodeSchema } from 'src/schema/verification-code.schema';
+import { ResendModule } from '../common/resend/resend.module';
 
 @Module({
   imports: [
@@ -23,6 +26,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
         signOptions: { expiresIn: '1h' },
       }),
     }),
+    MongooseModule.forFeature([
+      { name: 'VerificationCode', schema: VerificationCodeSchema },
+    ]),
+    ResendModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

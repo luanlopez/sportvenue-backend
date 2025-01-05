@@ -40,6 +40,7 @@
     "npm": "^10.9.2",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.0",
+    "resend": "^4.0.1",
     "rxjs": "^7.8.1",
     "uuid": "^10.0.0"
   },
@@ -85,7 +86,7 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-    "^src/(.*)$": "<rootDir>/$1"
-  }
+      "^src/(.*)$": "<rootDir>/$1"
+    }
   }
 }

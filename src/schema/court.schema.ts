@@ -1,65 +1,107 @@
 import { Schema, Document } from 'mongoose';
+import { CourtAmenities } from '../modules/court/enums/court-amenities.enum';
+import { CourtCategories } from '../modules/court/enums/court-categories.enum';
+
+export interface WeeklySchedule {
+  monday?: string[];
+  tuesday?: string[];
+  wednesday?: string[];
+  thursday?: string[];
+  friday?: string[];
+  saturday?: string[];
+  sunday?: string[];
+}
 
 export interface Court extends Document {
-  address: string;
-  ownerId: Schema.Types.ObjectId;
   name: string;
-  availableHours: string[];
-  images: string[];
-  createdAt?: Date;
-  updatedAt?: Date;
-  status?: boolean;
-  reason?: string;
+  description: string;
+  address: string;
   neighborhood: string;
   city: string;
   number: string;
-  amenities: string[];
-  categories: string[];
-  price_per_hour: number;
+  ownerId: Schema.Types.ObjectId;
+  weeklySchedule: WeeklySchedule;
+  reason?: string;
+  pricePerHour: number;
+  amenities: CourtAmenities[];
+  categories: CourtCategories[];
+  images: string[];
+  status?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export const CourtSchema = new Schema({
-  address: {
-    type: String,
-    required: true,
+export const CourtSchema = new Schema<Court>(
+  {
+    address: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+    neighborhood: {
+      type: String,
+      required: true,
+    },
+    city: {
+      type: String,
+      required: true,
+    },
+    number: {
+      type: String,
+      required: true,
+    },
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    pricePerHour: {
+      type: Number,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    images: [String],
+    status: {
+      type: Boolean,
+      required: false,
+    },
+    reason: {
+      type: String,
+      required: false,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    amenities: {
+      type: [String],
+      required: true,
+    },
+    categories: {
+      type: [String],
+      required: true,
+    },
+    weeklySchedule: {
+      monday: [String],
+      tuesday: [String],
+      wednesday: [String],
+      thursday: [String],
+      friday: [String],
+      saturday: [String],
+      sunday: [String],
+    },
   },
-  neighborhood: {
-    type: String,
-    required: true,
+  {
+    timestamps: true,
   },
-  city: {
-    type: String,
-    required: true,
-  },
-  number: {
-    type: String,
-    required: true,
-  },
-  ownerId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  name: {
-    type: String,
-    required: true,
-  },
-  availableHours: [String],
-  images: [String],
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-  status: {
-    type: Boolean,
-    required: false,
-  },
-  reason: {
-    type: String,
-    required: false,
-  },
-});
+);

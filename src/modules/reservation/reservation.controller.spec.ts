@@ -56,7 +56,7 @@ describe('ReservationController', () => {
         ownerId: 'user_2lX2f8JuZMKeTlKjBQ4oia4JItX',
         courtId: 'court_1a2b3c4d5e6f7g8h9i0j',
         reservedStartTime: '2024-09-18T10:00:00Z',
-        status: 'requested',
+        dayOfWeek: 'MONDAY',
       };
 
       const user: UserInterface = {

@@ -3,9 +3,9 @@ import { Document, Schema as MongooseSchema } from 'mongoose';
 import { CourtAmenities } from '../enums/court-amenities.enum';
 import { CourtCategories } from '../enums/court-categories.enum';
 import { User } from 'src/schema/user.schema';
+import { WeeklySchedule } from 'src/schema/court.schema';
 
 export type CourtDocument = Court & Document;
-
 @Schema({ timestamps: true })
 export class Court {
   @Prop({ required: true })
@@ -33,14 +33,11 @@ export class Court {
   })
   ownerId: User;
 
-  @Prop({ type: [String], required: true })
-  availableHours: string[];
-
   @Prop()
   reason?: string;
 
   @Prop({ required: true })
-  price_per_hour: number;
+  pricePerHour: number;
 
   @Prop({ type: [String], enum: CourtAmenities, required: true })
   amenities: CourtAmenities[];
@@ -50,6 +47,12 @@ export class Court {
 
   @Prop({ type: [String], required: true })
   images: string[];
+
+  @Prop({ type: Object, required: true })
+  weeklySchedule: WeeklySchedule;
+
+  @Prop({ type: Boolean, default: true })
+  status: boolean;
 }
 
 export const CourtSchema = SchemaFactory.createForClass(Court);

@@ -1,98 +1,60 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { WeeklyScheduleDTO } from './create-court.dto';
+import { CourtAmenities } from '../enums/court-amenities.enum';
+import { CourtCategories } from '../enums/court-categories.enum';
 
-export class UserDTO {
-  @ApiProperty({ example: 'Luan Lopes', description: 'Name of the user' })
-  name: string;
-
-  @ApiProperty({
-    example: 'luanlopesdasilva165@gmail.com',
-    description: 'Email of the user',
-  })
-  email: string;
-
-  @ApiProperty({
-    example: '11999999999',
-    description: 'Phone of the user',
-  })
-  phone?: string;
-}
 export class CourtDTO {
-  @ApiProperty({
-    example: '66e9dd3eba8209611a170971',
-    description: 'ID of the court',
-  })
+  @ApiProperty()
   _id: string;
 
-  @ApiProperty({ example: 'R. Xingu', description: 'Address of the court' })
-  address: string;
-
-  @ApiProperty({ example: 'Crispim', description: 'Neighborhood of the court' })
-  neighborhood: string;
-
-  @ApiProperty({
-    example: 'Itapecerica da Serra - SP',
-    description: 'City of the court',
-  })
-  city: string;
-
-  @ApiProperty({ example: '130/262', description: 'Number of the court' })
-  number: string;
-
-  @ApiProperty({
-    example: 'user_2lX2f8JuZMKeTlKjBQ4oia4JItX',
-    description: 'ID of the owner',
-  })
-  owner_id: string;
-
-  @ApiProperty({
-    example: 'Campo do Imperial',
-    description: 'Name of the court',
-  })
+  @ApiProperty()
   name: string;
 
-  @ApiProperty({
-    example: ['20:00', '21:00'],
-    description: 'Available hours for the court',
-  })
-  availableHours: string[];
+  @ApiProperty()
+  description: string;
 
-  @ApiProperty({
-    example: [
-      'https://ik.imagekit.io/pqxf1vesz/uploads/qa_evidencia_fk_202_4hiQZCfb1A.png',
-    ],
-    description: 'List of image URLs for the court',
-  })
+  @ApiProperty()
+  address: string;
+
+  @ApiProperty()
+  neighborhood: string;
+
+  @ApiProperty()
+  city: string;
+
+  @ApiProperty()
+  number: string;
+
+  @ApiProperty()
+  weeklySchedule: WeeklyScheduleDTO;
+
+  @ApiProperty()
+  pricePerHour: number;
+
+  @ApiProperty({ enum: CourtAmenities, isArray: true })
+  amenities: CourtAmenities[];
+
+  @ApiProperty({ enum: CourtCategories, isArray: true })
+  categories: CourtCategories[];
+
+  @ApiProperty()
   images: string[];
 
-  @ApiProperty({ example: true, description: 'Status of the court' })
+  @ApiProperty()
   status: boolean;
 
-  @ApiProperty({
-    example: '2024-09-17T19:49:18.518Z',
-    description: 'Creation date of the court',
-  })
-  createdAt: string;
-
-  @ApiProperty({
-    example: '2024-09-17T19:49:18.518Z',
-    description: 'Last update date of the court',
-  })
-  updatedAt: string;
-
-  @ApiProperty({ example: 0, description: 'Version key of the court' })
-  __v: number;
-
-  @ApiProperty({
-    type: UserDTO,
-    description: 'User details associated with the court',
-  })
-  user: UserDTO;
+  @ApiProperty()
+  user: {
+    name: string;
+    email: string;
+    phone: string;
+  };
 }
 
 export class GetCourtsResponseDTO {
-  @ApiProperty({ type: [CourtDTO], description: 'List of courts' })
+  @ApiProperty({ type: [CourtDTO] })
   data: CourtDTO[];
 
-  @ApiProperty({ example: 1, description: 'Total number of courts' })
+  @ApiProperty()
   total: number;
 }

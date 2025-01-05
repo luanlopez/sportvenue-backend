@@ -1,8 +1,73 @@
-import { IsString, IsArray, IsOptional } from 'class-validator';
+import { IsString, IsArray, IsOptional, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, IsEnum, IsNotEmpty } from 'class-validator';
 import { CourtAmenities } from '../enums/court-amenities.enum';
 import { CourtCategories } from '../enums/court-categories.enum';
+
+export class WeeklyScheduleDTO {
+  @ApiProperty({
+    description: 'Available hours for Monday',
+    example: ['08:00', '09:00', '10:00'],
+    required: false,
+  })
+  @IsArray()
+  @IsOptional()
+  monday?: string[];
+
+  @ApiProperty({
+    description: 'Available hours for Tuesday',
+    example: ['08:00', '09:00', '10:00'],
+    required: false,
+  })
+  @IsArray()
+  @IsOptional()
+  tuesday?: string[];
+
+  @ApiProperty({
+    description: 'Available hours for Wednesday',
+    example: ['08:00', '09:00', '10:00'],
+    required: false,
+  })
+  @IsArray()
+  @IsOptional()
+  wednesday?: string[];
+
+  @ApiProperty({
+    description: 'Available hours for Thursday',
+    example: ['08:00', '09:00', '10:00'],
+    required: false,
+  })
+  @IsArray()
+  @IsOptional()
+  thursday?: string[];
+
+  @ApiProperty({
+    description: 'Available hours for Friday',
+    example: ['08:00', '09:00', '10:00'],
+    required: false,
+  })
+  @IsArray()
+  @IsOptional()
+  friday?: string[];
+
+  @ApiProperty({
+    description: 'Available hours for Saturday',
+    example: ['08:00', '09:00', '10:00'],
+    required: false,
+  })
+  @IsArray()
+  @IsOptional()
+  saturday?: string[];
+
+  @ApiProperty({
+    description: 'Available hours for Sunday',
+    example: ['08:00', '09:00', '10:00'],
+    required: false,
+  })
+  @IsArray()
+  @IsOptional()
+  sunday?: string[];
+}
 
 export class CreateCourtDTO {
   @ApiProperty({
@@ -34,26 +99,11 @@ export class CreateCourtDTO {
   number: string;
 
   @ApiProperty({
-    description: 'The ID of the court owner',
-    example: '507f1f77bcf86cd799439011',
-  })
-  @IsString()
-  @IsNotEmpty()
-  ownerId: string;
-
-  @ApiProperty({
     description: 'The name of the court',
     example: 'Central Court',
   })
   @IsString()
   name: string;
-
-  @ApiProperty({
-    description: 'The available hours for booking the court',
-    example: ['08:00 AM - 10:00 AM', '02:00 PM - 04:00 PM'],
-  })
-  @IsArray()
-  availableHours: string[];
 
   @ApiProperty({
     description: 'An optional reason for the court creation',
@@ -91,4 +141,12 @@ export class CreateCourtDTO {
   @IsArray()
   @IsString({ each: true })
   images: string[];
+
+  @ApiProperty({
+    description: 'Weekly schedule with available hours for each day',
+    type: WeeklyScheduleDTO,
+  })
+  @IsObject()
+  @IsNotEmpty()
+  weeklySchedule: WeeklyScheduleDTO;
 }
