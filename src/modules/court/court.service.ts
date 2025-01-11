@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { CreateCourtDTO } from './dtos/create-court.dto';
@@ -12,6 +8,9 @@ import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 import { GetCourtDTO } from './dtos/get-court.dto';
 import { CourtDTO, GetCourtsResponseDTO } from './dtos/list-courts.dto';
 import { CourtCategories } from './enums/court-categories.enum';
+import { CustomApiError } from 'src/common/errors/custom-api.error';
+import { ApiMessages } from 'src/common/messages/api-messages';
+import { ErrorCodes } from 'src/common/errors/error-codes';
 
 @Injectable()
 export class CourtService {
@@ -72,7 +71,12 @@ export class CourtService {
         .exec();
 
       if (!court) {
-        throw new InternalServerErrorException('Court not found');
+        throw new CustomApiError(
+          ApiMessages.Court.NotFound.title,
+          ApiMessages.Court.NotFound.message,
+          ErrorCodes.COURT_NOT_FOUND,
+          404,
+        );
       }
 
       const userDetails: any = court?.ownerId;
@@ -104,9 +108,14 @@ export class CourtService {
 
       return courtsWithUserDetails;
     } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
       throw new InternalServerErrorException({
-        message: 'Failed to get court with image details',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }
@@ -173,8 +182,9 @@ export class CourtService {
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'Failed to get courts with pagination',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }
@@ -244,8 +254,9 @@ export class CourtService {
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'Failed to get courts with pagination',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }
@@ -255,12 +266,22 @@ export class CourtService {
       const result = await this.courtModel.findByIdAndDelete(courtId).exec();
 
       if (!result) {
-        throw new NotFoundException('Court not found');
+        throw new CustomApiError(
+          ApiMessages.Court.NotFound.title,
+          ApiMessages.Court.NotFound.message,
+          ErrorCodes.COURT_NOT_FOUND,
+          404,
+        );
       }
     } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
       throw new InternalServerErrorException({
-        message: 'Failed to delete court',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }
@@ -272,14 +293,24 @@ export class CourtService {
         .exec();
 
       if (!deactivatedCourt) {
-        throw new NotFoundException('Court not found');
+        throw new CustomApiError(
+          ApiMessages.Court.NotFound.title,
+          ApiMessages.Court.NotFound.message,
+          ErrorCodes.COURT_NOT_FOUND,
+          404,
+        );
       }
 
       return deactivatedCourt;
     } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
       throw new InternalServerErrorException({
-        message: 'Failed to deactivate court',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }
@@ -291,14 +322,24 @@ export class CourtService {
         .exec();
 
       if (!activatedCourt) {
-        throw new NotFoundException('Court not found');
+        throw new CustomApiError(
+          ApiMessages.Court.NotFound.title,
+          ApiMessages.Court.NotFound.message,
+          ErrorCodes.COURT_NOT_FOUND,
+          404,
+        );
       }
 
       return activatedCourt;
     } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
       throw new InternalServerErrorException({
-        message: 'Failed to deactivate court',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }
@@ -316,14 +357,24 @@ export class CourtService {
         .exec();
 
       if (!updatedCourt) {
-        throw new NotFoundException('Court not found');
+        throw new CustomApiError(
+          ApiMessages.Court.NotFound.title,
+          ApiMessages.Court.NotFound.message,
+          ErrorCodes.COURT_NOT_FOUND,
+          404,
+        );
       }
 
       return updatedCourt;
     } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
       throw new InternalServerErrorException({
-        message: 'Failed to update court',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }
@@ -345,14 +396,24 @@ export class CourtService {
         .exec();
 
       if (!updatedCourt) {
-        throw new NotFoundException('Court not found');
+        throw new CustomApiError(
+          ApiMessages.Court.NotFound.title,
+          ApiMessages.Court.NotFound.message,
+          ErrorCodes.COURT_NOT_FOUND,
+          404,
+        );
       }
 
       return updatedCourt;
     } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
       throw new InternalServerErrorException({
-        message: 'Failed to remove court hour',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }
@@ -373,14 +434,24 @@ export class CourtService {
         .exec();
 
       if (!updatedCourt) {
-        throw new NotFoundException('Court not found');
+        throw new CustomApiError(
+          ApiMessages.Court.NotFound.title,
+          ApiMessages.Court.NotFound.message,
+          ErrorCodes.COURT_NOT_FOUND,
+          404,
+        );
       }
 
       return updatedCourt;
     } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
       throw new InternalServerErrorException({
-        message: 'Failed to restore court hour',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }
@@ -396,14 +467,24 @@ export class CourtService {
       );
 
       if (!updatedCourt) {
-        throw new NotFoundException('Court not found');
+        throw new CustomApiError(
+          ApiMessages.Court.NotFound.title,
+          ApiMessages.Court.NotFound.message,
+          ErrorCodes.COURT_NOT_FOUND,
+          404,
+        );
       }
 
       return updatedCourt;
     } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
       throw new InternalServerErrorException({
-        message: 'Failed to update images',
+        message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
   }

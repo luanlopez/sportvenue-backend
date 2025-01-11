@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/schema/user.schema';
@@ -7,6 +7,9 @@ import {
   CreateUserDTOOutput,
 } from './dtos/create-user.dto';
 import { CryptoService } from '../common/crypto/crypto.service';
+import { ApiMessages } from 'src/common/messages/api-messages';
+import { ErrorCodes } from 'src/common/errors/error-codes';
+import { CustomApiError } from 'src/common/errors/custom-api.error';
 
 @Injectable()
 export class UsersService {
@@ -22,8 +25,19 @@ export class UsersService {
   async getUserById(id: string): Promise<User> {
     const user = await this.userModel.findById(id).exec();
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new CustomApiError(
+        ApiMessages.User.NotFound.title,
+        ApiMessages.User.NotFound.message,
+        ErrorCodes.USER_NOT_FOUND,
+        404,
+      );
     }
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User> {
+    const user = await this.userModel.findOne({ email }).exec();
+
     return user;
   }
 
@@ -39,6 +53,8 @@ export class UsersService {
       userType: userData?.userType,
       password: hashedPassword,
       phone: userData?.phone,
+      picture: userData?.picture,
+      googleId: userData?.googleId,
     };
 
     const newUser = await this.userModel.create(data);
@@ -57,7 +73,12 @@ export class UsersService {
       .findByIdAndUpdate(id, userData, { new: true, runValidators: true })
       .exec();
     if (!updatedUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new CustomApiError(
+        ApiMessages.User.NotFound.title,
+        ApiMessages.User.NotFound.message,
+        ErrorCodes.USER_NOT_FOUND,
+        404,
+      );
     }
     return updatedUser;
   }
@@ -65,7 +86,12 @@ export class UsersService {
   async deleteUser(id: string): Promise<void> {
     const result = await this.userModel.findByIdAndDelete(id).exec();
     if (!result) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new CustomApiError(
+        ApiMessages.User.NotFound.title,
+        ApiMessages.User.NotFound.message,
+        ErrorCodes.USER_NOT_FOUND,
+        404,
+      );
     }
   }
 }

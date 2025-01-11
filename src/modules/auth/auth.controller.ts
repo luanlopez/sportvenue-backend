@@ -2,10 +2,10 @@ import {
   Controller,
   Post,
   Body,
-  UnauthorizedException,
   Get,
   UseGuards,
   Request,
+  Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -13,6 +13,7 @@ import { UserProfileDto } from './dtos/user-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PreRegisterDTO } from './dtos/pre-register.dto';
 import { VerifyRegistrationDTO } from './dtos/verify-registration.dto';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -50,10 +51,6 @@ export class AuthController {
     @Body() { email, password }: { email: string; password: string },
   ) {
     const user = await this.authService.validateUser(email, password);
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
 
     return this.authService.login(user);
   }
@@ -105,5 +102,39 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   async completeRegistration(@Body() verifyDto: VerifyRegistrationDTO) {
     return this.authService.completeRegistration(verifyDto);
+  }
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Iniciar autenticação com Google' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redireciona para a página de login do Google',
+  })
+  async googleAuth() {
+    return;
+  }
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  @ApiOperation({ summary: 'Callback do Google OAuth' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login com Google realizado com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        accessToken: { type: 'string' },
+        refreshToken: { type: 'string' },
+      },
+    },
+  })
+  async googleAuthRedirect(@Req() req) {
+    const tokens = await this.authService.googleLogin(req.user);
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 }

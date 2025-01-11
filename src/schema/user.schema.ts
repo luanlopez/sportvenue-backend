@@ -10,10 +10,12 @@ export interface User extends Document {
   lastName: string;
   email: string;
   password: string;
-  phone: string;
   createdAt: Date;
   updatedAt: Date;
   userType: UserType;
+  phone?: string;
+  googleId?: string;
+  picture?: string;
 }
 
 export const UserSchema = new Schema<User>(
@@ -32,12 +34,20 @@ export const UserSchema = new Schema<User>(
       required: true,
       minlength: 6,
     },
-    phone: { type: String, required: true, trim: true },
+    phone: { type: String, required: false, trim: true },
     userType: {
       type: String,
       enum: Object.values(UserType),
       required: true,
       default: UserType.USER,
+    },
+    googleId: {
+      type: String,
+      required: false,
+    },
+    picture: {
+      type: String,
+      required: false,
     },
   },
   {

@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Reservation } from 'src/schema/reservation.schema';
@@ -6,6 +6,9 @@ import { CreateReservationDTO } from './dtos/create-reservation.dto';
 import { CourtService } from '../court/court.service';
 import { ResendService } from '../common/resend/resend.service';
 import { UserInterface } from '../auth/strategies/interfaces/user.interface';
+import { ApiMessages } from 'src/common/messages/api-messages';
+import { CustomApiError } from 'src/common/errors/custom-api.error';
+import { ErrorCodes } from 'src/common/errors/error-codes';
 
 @Injectable()
 export class ReservationService {
@@ -31,6 +34,12 @@ export class ReservationService {
 
       const reservation = await createdReservationData.save();
 
+      await this.courtService.removeAvailableHour(
+        reservation?.courtId,
+        reservation?.dayOfWeek,
+        reservation?.reservedStartTime,
+      );
+
       await this.resendService.sendReservationNotification(
         court.user.email,
         court.user.name.split(' ')[0],
@@ -45,10 +54,13 @@ export class ReservationService {
 
       return reservation;
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: error?.message,
-        cause: error?.stack,
-      });
+      console.log(error);
+      throw new CustomApiError(
+        ApiMessages.Generic.InternalError.title,
+        ApiMessages.Generic.InternalError.message,
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        500,
+      );
     }
   }
 
@@ -63,12 +75,20 @@ export class ReservationService {
         .populate('courtId');
 
       if (!reservation) {
-        throw new InternalServerErrorException('Reservation not found');
+        throw new CustomApiError(
+          ApiMessages.Reservation.NotFound.title,
+          ApiMessages.Reservation.NotFound.message,
+          ErrorCodes.RESERVATION_NOT_FOUND,
+          404,
+        );
       }
 
       if (status === 'approved' && reservation?.status === 'cancelled') {
-        throw new InternalServerErrorException(
-          'It is not possible to approve a reservation that has already been cancelled, please do it again',
+        throw new CustomApiError(
+          ApiMessages.Reservation.CancelRequestInvalid.title,
+          ApiMessages.Reservation.CancelRequestInvalid.message,
+          ErrorCodes.INVALID_RESERVATION_STATUS,
+          400,
         );
       }
 
@@ -107,10 +127,16 @@ export class ReservationService {
 
       return reservation;
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: error?.message,
-        cause: error?.stack,
-      });
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
+      throw new CustomApiError(
+        ApiMessages.Generic.InternalError.title,
+        ApiMessages.Generic.InternalError.message,
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        500,
+      );
     }
   }
 
@@ -134,10 +160,12 @@ export class ReservationService {
 
       return { data, total };
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: 'Failed to fetch reservations',
-        cause: error?.message,
-      });
+      throw new CustomApiError(
+        ApiMessages.Generic.InternalError.title,
+        ApiMessages.Generic.InternalError.message,
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        500,
+      );
     }
   }
 
@@ -161,10 +189,12 @@ export class ReservationService {
 
       return { data, total };
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: 'Failed to fetch reservations',
-        cause: error?.message,
-      });
+      throw new CustomApiError(
+        ApiMessages.Generic.InternalError.title,
+        ApiMessages.Generic.InternalError.message,
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        500,
+      );
     }
   }
 
@@ -173,7 +203,12 @@ export class ReservationService {
       const reservation = await this.reservationModel.findById(id);
 
       if (!reservation) {
-        throw new InternalServerErrorException('Reservation not found');
+        throw new CustomApiError(
+          ApiMessages.Reservation.NotFound.title,
+          ApiMessages.Reservation.NotFound.message,
+          ErrorCodes.RESERVATION_NOT_FOUND,
+          404,
+        );
       }
 
       reservation.status = 'requested';
@@ -181,10 +216,16 @@ export class ReservationService {
 
       return reservation;
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: error?.message,
-        cause: error?.stack,
-      });
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
+      throw new CustomApiError(
+        ApiMessages.Generic.InternalError.title,
+        ApiMessages.Generic.InternalError.message,
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        500,
+      );
     }
   }
 
@@ -193,12 +234,20 @@ export class ReservationService {
       const reservation = await this.reservationModel.findById(id);
 
       if (!reservation) {
-        throw new InternalServerErrorException('Reservation not found');
+        throw new CustomApiError(
+          ApiMessages.Reservation.NotFound.title,
+          ApiMessages.Reservation.NotFound.message,
+          ErrorCodes.RESERVATION_NOT_FOUND,
+          404,
+        );
       }
 
       if (reservation.status !== 'requested') {
-        throw new InternalServerErrorException(
-          'Cancellation request not found or already processed',
+        throw new CustomApiError(
+          ApiMessages.Reservation.CancelRequestInvalid.title,
+          ApiMessages.Reservation.CancelRequestInvalid.message,
+          ErrorCodes.RESERVATION_CANCEL_REQUEST_INVALID,
+          400,
         );
       }
 
@@ -213,10 +262,16 @@ export class ReservationService {
 
       return reservation;
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: error?.message,
-        cause: error?.stack,
-      });
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
+      throw new CustomApiError(
+        ApiMessages.Generic.InternalError.title,
+        ApiMessages.Generic.InternalError.message,
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        500,
+      );
     }
   }
 }

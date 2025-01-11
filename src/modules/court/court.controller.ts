@@ -38,14 +38,10 @@ import { CourtCategories } from './enums/court-categories.enum';
 export class CourtController {
   constructor(private readonly courtService: CourtService) {}
 
-  @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post()
   @Roles('HOUSE_OWNER')
   @ApiOperation({ summary: 'Create a new court' })
-  @ApiResponse({
-    status: 201,
-    description: 'The court has been successfully created.',
-  })
   async create(
     @Body() createCourtDTO: CreateCourtDTO,
     @User() user: UserInterface,
@@ -87,8 +83,6 @@ export class CourtController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HOUSE_OWNER', 'USER')
   @ApiOperation({ summary: 'Get a court by ID' })
   @ApiParam({
     name: 'id',
@@ -105,8 +99,6 @@ export class CourtController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('USER')
   @ApiOperation({ summary: 'Get a list of all courts' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })

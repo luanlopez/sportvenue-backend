@@ -3,10 +3,10 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { CryptoService } from '../common/crypto/crypto.service';
-import { UnauthorizedException } from '@nestjs/common';
 import { jwtConfig } from './config/jwt.config';
 import { ResendService } from '../common/resend/resend.service';
 import { getModelToken } from '@nestjs/mongoose';
+import { CustomApiError } from 'src/common/errors/custom-api.error';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -86,7 +86,7 @@ describe('AuthService', () => {
 
       await expect(
         service.validateUser('test@example.com', 'password'),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toThrow(CustomApiError);
     });
 
     it('should throw UnauthorizedException if password is invalid', async () => {
@@ -104,7 +104,7 @@ describe('AuthService', () => {
       cryptoServiceMock.decryptPassword.mockReturnValue('wrongPassword');
 
       await expect(service.validateUser(email, password)).rejects.toThrow(
-        UnauthorizedException,
+        CustomApiError,
       );
     });
   });

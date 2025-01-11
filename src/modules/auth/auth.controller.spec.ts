@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { UnauthorizedException } from '@nestjs/common';
 import { UserType } from '../../../src/schema/user.schema';
 import { PreRegisterDTO } from './dtos/pre-register.dto';
 
@@ -66,17 +65,6 @@ describe('AuthController', () => {
         password,
       );
       expect(authServiceMock.login).toHaveBeenCalledWith(user);
-    });
-
-    it('should throw UnauthorizedException when invalid credentials are provided', async () => {
-      const email = 'john.doe@example.com';
-      const password = 'wrongpassword';
-
-      authServiceMock.validateUser.mockResolvedValue(null);
-
-      await expect(controller.login({ email, password })).rejects.toThrow(
-        UnauthorizedException,
-      );
     });
   });
 });

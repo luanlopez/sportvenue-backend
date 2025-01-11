@@ -6,4 +6,6 @@ export class UserProfileDto {
   updated_at: Date;
   phone: string;
   userType: string;
+  picture?: string;
+  googleId?: string;
 }

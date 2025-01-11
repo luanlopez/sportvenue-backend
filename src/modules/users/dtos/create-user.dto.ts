@@ -41,9 +41,10 @@ export class CreateUserDTOInput {
   @ApiProperty({
     description: 'Phone number of the user',
     example: '1234567890',
+    required: false,
   })
   @IsString()
-  phone: string;
+  phone?: string;
 
   @ApiProperty({
     description:
@@ -55,6 +56,24 @@ export class CreateUserDTOInput {
   @IsEnum(UserType)
   @IsOptional()
   userType?: UserType;
+
+  @ApiProperty({
+    description: 'Picture of the user',
+    example: 'https://example.com/picture.jpg',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  picture?: string;
+
+  @ApiProperty({
+    description: 'Google ID of the user',
+    example: '1234567890',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  googleId?: string;
 }
 
 export class CreateUserDTOOutput {
