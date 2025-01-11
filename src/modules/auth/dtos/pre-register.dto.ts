@@ -1,4 +1,4 @@
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PreRegisterDTO {
@@ -40,7 +40,9 @@ export class PreRegisterDTO {
   @ApiProperty({
     description: 'User type',
     example: 'USER',
+    required: false,
   })
   @IsString()
+  @IsOptional()
   userType: string;
 }

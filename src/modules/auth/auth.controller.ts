@@ -6,6 +6,7 @@ import {
   UseGuards,
   Request,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -14,6 +15,9 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { PreRegisterDTO } from './dtos/pre-register.dto';
 import { VerifyRegistrationDTO } from './dtos/verify-registration.dto';
 import { AuthGuard } from '@nestjs/passport';
+import { UpdateUserTypeDTO } from './dtos/update-user-type.dto';
+import { User } from './user.decorator';
+import { UserInterface } from './strategies/interfaces/user.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -136,5 +140,33 @@ export class AuthController {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     };
+  }
+
+  @Patch('update-type')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Atualiza o tipo do usuário' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tipo de usuário atualizado com sucesso',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Tipo de usuário atualizado com sucesso',
+        },
+        userType: {
+          type: 'string',
+          enum: ['USER', 'HOUSE_OWNER'],
+          example: 'HOUSE_OWNER',
+        },
+      },
+    },
+  })
+  async updateUserType(
+    @User() user: UserInterface,
+    @Body() updateUserTypeDto: UpdateUserTypeDTO,
+  ) {
+    return this.authService.updateUserType(user.id, updateUserTypeDto.userType);
   }
 }
