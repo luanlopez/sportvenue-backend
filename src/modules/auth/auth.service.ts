@@ -64,7 +64,6 @@ export class AuthService {
       userData: {
         firstName: preRegisterDto.firstName,
         lastName: preRegisterDto.lastName,
-        userType: preRegisterDto.userType,
         phone: preRegisterDto.phone,
         password: preRegisterDto.password,
       },
@@ -121,7 +120,6 @@ export class AuthService {
       phone: verification.userData.phone,
       firstName: verification.userData.firstName,
       lastName: verification.userData.lastName,
-      userType: verification.userData.userType as UserType,
     });
 
     verification.isUsed = true;
@@ -301,5 +299,36 @@ export class AuthService {
       lastName: existingUser.lastName,
       userType: existingUser.userType,
     });
+  }
+
+  async updateUserType(userId: string, userType: UserType) {
+    try {
+      const user = await this.usersService.updateUserType(userId, userType);
+
+      if (!user) {
+        throw new CustomApiError(
+          ApiMessages.User.NotFound.title,
+          ApiMessages.User.NotFound.message,
+          ErrorCodes.USER_NOT_FOUND,
+          404,
+        );
+      }
+
+      return {
+        message: 'Tipo de usuário atualizado com sucesso',
+        userType: user.userType,
+      };
+    } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
+      throw new CustomApiError(
+        ApiMessages.Generic.InternalError.title,
+        ApiMessages.Generic.InternalError.message,
+        ErrorCodes.INTERNAL_SERVER_ERROR,
+        500,
+      );
+    }
   }
 }

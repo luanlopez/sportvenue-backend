@@ -10,6 +10,7 @@ import { CryptoService } from '../common/crypto/crypto.service';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
+import { UserType } from 'src/schema/user.schema';
 
 @Injectable()
 export class UsersService {
@@ -50,7 +51,6 @@ export class UsersService {
       lastName: userData?.lastName,
       firstName: userData?.firstName,
       email: userData?.email,
-      userType: userData?.userType,
       password: hashedPassword,
       phone: userData?.phone,
       picture: userData?.picture,
@@ -93,5 +93,13 @@ export class UsersService {
         404,
       );
     }
+  }
+
+  async updateUserType(userId: string, userType: UserType): Promise<User> {
+    return this.userModel.findByIdAndUpdate(
+      userId,
+      { userType },
+      { new: true },
+    );
   }
 }

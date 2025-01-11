@@ -12,7 +12,7 @@ export interface User extends Document {
   password: string;
   createdAt: Date;
   updatedAt: Date;
-  userType: UserType;
+  userType?: UserType;
   phone?: string;
   googleId?: string;
   picture?: string;
@@ -38,8 +38,7 @@ export const UserSchema = new Schema<User>(
     userType: {
       type: String,
       enum: Object.values(UserType),
-      required: true,
-      default: UserType.USER,
+      required: false,
     },
     googleId: {
       type: String,
