@@ -1,5 +1,6 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { ReservationType } from '../enums/reservation-type.enum';
 
 export class CreateReservationDTO {
   @ApiProperty()
@@ -21,4 +22,9 @@ export class CreateReservationDTO {
   @IsString()
   @IsNotEmpty()
   ownerId: string;
+
+  @ApiProperty({ enum: ReservationType })
+  @IsEnum(ReservationType)
+  @IsNotEmpty()
+  reservationType: ReservationType;
 }

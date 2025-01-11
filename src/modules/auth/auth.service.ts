@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { CryptoService } from '../common/crypto/crypto.service';
@@ -15,6 +11,9 @@ import { ResendService } from '../common/resend/resend.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { VerificationCode } from 'src/schema/verification-code.schema';
 import { UserType } from 'src/schema/user.schema';
+import { CustomApiError } from '../../common/errors/custom-api.error';
+import { ErrorCodes } from '../../common/errors/error-codes';
+import { ApiMessages } from '../../common/messages/api-messages';
 
 @Injectable()
 export class AuthService {
@@ -30,9 +29,33 @@ export class AuthService {
   async preRegister(
     preRegisterDto: PreRegisterDTO,
   ): Promise<{ message: string }> {
+    const getEmail = await this.usersService.getUserByEmail(
+      preRegisterDto.email,
+    );
+
+    if (getEmail) {
+      throw new CustomApiError(
+        ApiMessages.Auth.EmailExists.title,
+        ApiMessages.Auth.EmailExists.message,
+        ErrorCodes.EMAIL_ALREADY_EXISTS,
+        400,
+      );
+    }
+
+    const getTokensExistents = await this.verificationModel.find({
+      email: preRegisterDto.email,
+    });
+
+    if (getTokensExistents.length > 0) {
+      await this.verificationModel.updateMany(
+        { email: preRegisterDto.email },
+        { isUsed: true },
+      );
+    }
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
     const verificationCode = new this.verificationModel({
       email: preRegisterDto.email,
@@ -56,20 +79,36 @@ export class AuthService {
       code,
     );
 
-    return { message: 'Verification code sent to email' };
+    return { message: 'Código de verificação enviado para o email' };
   }
 
   async completeRegistration(
     verifyDto: VerifyRegistrationDTO,
   ): Promise<{ accessToken: string }> {
+    const currentTime = new Date();
+
     const verification = await this.verificationModel.findOne({
       code: verifyDto.code,
       isUsed: false,
-      expiresAt: { $gt: new Date() },
+      expiresAt: { $gt: currentTime },
     });
 
+    if (currentTime > verification?.expiresAt) {
+      throw new CustomApiError(
+        ApiMessages.Auth.TokenExpired.title,
+        ApiMessages.Auth.TokenExpired.message,
+        ErrorCodes.TOKEN_EXPIRED,
+        401,
+      );
+    }
+
     if (!verification) {
-      throw new BadRequestException('Invalid or expired verification code');
+      throw new CustomApiError(
+        ApiMessages.Auth.InvalidCredentials.title,
+        ApiMessages.Auth.InvalidCredentials.message,
+        ErrorCodes.INVALID_CREDENTIALS,
+        401,
+      );
     }
 
     const hashedPassword = this.cryptoService.encryptPassword(
@@ -110,6 +149,8 @@ export class AuthService {
       phone: userFinded.phone,
       created_at: userFinded.createdAt,
       updated_at: userFinded.updatedAt,
+      picture: userFinded?.picture,
+      googleId: userFinded?.googleId,
     };
   }
 
@@ -119,7 +160,12 @@ export class AuthService {
       .then((users) => users.find((user) => user.email === email));
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new CustomApiError(
+        ApiMessages.Auth.InvalidCredentials.title,
+        ApiMessages.Auth.InvalidCredentials.message,
+        ErrorCodes.INVALID_CREDENTIALS,
+        401,
+      );
     }
 
     const decryptedPassword = this.cryptoService.decryptPassword(
@@ -127,7 +173,12 @@ export class AuthService {
     );
 
     if (decryptedPassword !== password) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new CustomApiError(
+        ApiMessages.Auth.InvalidCredentials.title,
+        ApiMessages.Auth.InvalidCredentials.message,
+        ErrorCodes.INVALID_CREDENTIALS,
+        401,
+      );
     }
 
     return user;
@@ -166,8 +217,14 @@ export class AuthService {
       });
 
       const user = await this.usersService.getUserById(decoded.sub);
+
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw new CustomApiError(
+          ApiMessages.Auth.InvalidCredentials.title,
+          ApiMessages.Auth.InvalidCredentials.message,
+          ErrorCodes.INVALID_CREDENTIALS,
+          401,
+        );
       }
 
       return this.generateTokens({
@@ -178,7 +235,12 @@ export class AuthService {
         userType: user.userType,
       });
     } catch (error) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new CustomApiError(
+        ApiMessages.Auth.InvalidCredentials.title,
+        ApiMessages.Auth.InvalidCredentials.message,
+        ErrorCodes.INVALID_CREDENTIALS,
+        401,
+      );
     }
   }
 
@@ -197,5 +259,47 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  async googleLogin(user: any) {
+    if (!user) {
+      throw new CustomApiError(
+        ApiMessages.Auth.InvalidCredentials.title,
+        ApiMessages.Auth.InvalidCredentials.message,
+        ErrorCodes.INVALID_CREDENTIALS,
+        401,
+      );
+    }
+
+    const existingUser = await this.usersService.getUserByEmail(user.email);
+
+    if (!existingUser) {
+      const newUser = await this.usersService.createUser({
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        userType: UserType.USER,
+        password: '',
+        phone: '',
+        picture: user.picture,
+        googleId: user.id,
+      });
+
+      return this.generateTokens({
+        email: newUser.email,
+        sub: newUser.id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        userType: newUser.userType,
+      });
+    }
+
+    return this.generateTokens({
+      email: existingUser.email,
+      sub: existingUser.id,
+      firstName: existingUser.firstName,
+      lastName: existingUser.lastName,
+      userType: existingUser.userType,
+    });
   }
 }

@@ -7,6 +7,7 @@ import { Reservation } from 'src/schema/reservation.schema';
 import { CreateReservationDTO } from './dtos/create-reservation.dto';
 import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 import { InternalServerErrorException } from '@nestjs/common';
+import { ReservationType } from './enums/reservation-type.enum';
 
 describe('ReservationController', () => {
   let reservationController: ReservationController;
@@ -57,6 +58,7 @@ describe('ReservationController', () => {
         courtId: 'court_1a2b3c4d5e6f7g8h9i0j',
         reservedStartTime: '2024-09-18T10:00:00Z',
         dayOfWeek: 'MONDAY',
+        reservationType: ReservationType.SINGLE,
       };
 
       const user: UserInterface = {

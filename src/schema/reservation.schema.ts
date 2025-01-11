@@ -1,4 +1,5 @@
 import { Schema, Document } from 'mongoose';
+import { ReservationType } from '../modules/reservation/enums/reservation-type.enum';
 
 export interface Reservation extends Document {
   ownerId: Schema.Types.ObjectId;
@@ -6,6 +7,7 @@ export interface Reservation extends Document {
   courtId: Schema.Types.ObjectId;
   dayOfWeek: string;
   reservedStartTime: string;
+  reservationType: ReservationType;
   status: 'requested' | 'approved' | 'rejected' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
@@ -50,6 +52,11 @@ export const ReservationSchema = new Schema<Reservation>(
       type: Schema.Types.String,
       enum: ['requested', 'approved', 'rejected', 'cancelled'],
       default: 'requested',
+      required: true,
+    },
+    reservationType: {
+      type: String,
+      enum: Object.values(ReservationType),
       required: true,
     },
   },

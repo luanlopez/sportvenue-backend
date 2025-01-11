@@ -1,8 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CourtService } from './court.service';
 import { getModelToken } from '@nestjs/mongoose';
-import { InternalServerErrorException } from '@nestjs/common';
 import { ImageKitService } from '../common/imagekit/imagekit.service';
+import { ApiMessages } from 'src/common/messages/api-messages';
+import { ErrorCodes } from 'src/common/errors/error-codes';
+import { CustomApiError } from 'src/common/errors/custom-api.error';
 
 describe('CourtService', () => {
   let service: CourtService;
@@ -35,8 +37,11 @@ describe('CourtService', () => {
       courtModel.findById.mockResolvedValue(null);
 
       await expect(service.getCourtByID(courtId)).rejects.toThrow(
-        new InternalServerErrorException(
-          'Failed to get court with image details',
+        new CustomApiError(
+          ApiMessages.Generic.InternalError.title,
+          ApiMessages.Generic.InternalError.message,
+          ErrorCodes.INTERNAL_SERVER_ERROR,
+          500,
         ),
       );
     });
