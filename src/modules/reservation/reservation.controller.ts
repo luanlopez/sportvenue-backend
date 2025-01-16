@@ -243,8 +243,19 @@ export class ReservationController {
 
   @Post(':id/cancel')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HOUSE_OWNER')
+  @Roles('USER')
   @ApiOperation({ summary: 'Request cancellation of a reservation' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        reason: {
+          type: 'string',
+          description: 'Motivo do cancelamento',
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Cancellation request submitted successfully.',
@@ -255,7 +266,8 @@ export class ReservationController {
   })
   async cancelReservation(
     @Param('id') id: string,
+    @Body('reason') reason?: string,
   ): Promise<Partial<Reservation>> {
-    return this.reservationService.cancellingReservaition(id);
+    return this.reservationService.cancellingReservaition(id, reason);
   }
 }

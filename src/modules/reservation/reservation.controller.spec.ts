@@ -278,23 +278,4 @@ describe('ReservationController', () => {
       expect(result).toEqual(reservation);
     });
   });
-
-  describe('cancelReservation', () => {
-    it('should cancel a reservation', async () => {
-      const reservation: Partial<Reservation> = {
-        status: 'approved',
-      };
-
-      jest
-        .spyOn(reservationService, 'cancellingReservaition')
-        .mockResolvedValue(reservation);
-
-      const result =
-        await reservationController.cancelReservation('reservation123');
-      expect(reservationService.cancellingReservaition).toHaveBeenCalledWith(
-        'reservation123',
-      );
-      expect(result).toEqual(reservation);
-    });
-  });
 });

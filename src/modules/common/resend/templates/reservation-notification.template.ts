@@ -1,6 +1,6 @@
 import { emailStyles } from './styles';
 
-const weekDayTranslations = {
+export const weekDayTranslations = {
   monday: 'Segunda-feira',
   tuesday: 'Terça-feira',
   wednesday: 'Quarta-feira',

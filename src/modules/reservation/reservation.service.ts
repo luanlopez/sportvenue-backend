@@ -198,9 +198,16 @@ export class ReservationService {
     }
   }
 
-  async cancellingReservaition(id: string): Promise<Partial<Reservation>> {
+  async cancellingReservaition(
+    id: string,
+    reason?: string,
+  ): Promise<Partial<Reservation>> {
     try {
-      const reservation = await this.reservationModel.findById(id);
+      const reservation = await this.reservationModel
+        .findById(id)
+        .populate('userId')
+        .populate('courtId')
+        .populate('ownerId');
 
       if (!reservation) {
         throw new CustomApiError(
@@ -213,6 +220,20 @@ export class ReservationService {
 
       reservation.status = 'requested';
       await reservation.save();
+
+      const user: any = reservation.userId;
+      const court: any = reservation.courtId;
+      const owner: any = reservation.ownerId;
+
+      await this.resendService.sendReservationCancellationNotification(
+        user.email,
+        `${user.firstName} ${user.lastName}`,
+        court.name,
+        reservation.dayOfWeek,
+        reservation.reservedStartTime,
+        `${owner.firstName} ${owner.lastName}`,
+        reason,
+      );
 
       return reservation;
     } catch (error) {
