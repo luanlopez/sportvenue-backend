@@ -218,8 +218,14 @@ export class ReservationService {
         );
       }
 
-      reservation.status = 'requested';
+      reservation.status = 'cancelled';
       await reservation.save();
+
+      await this.courtService.restoreAvailableHour(
+        reservation?.courtId,
+        reservation?.dayOfWeek,
+        reservation?.reservedStartTime,
+      );
 
       const user: any = reservation.userId;
       const court: any = reservation.courtId;

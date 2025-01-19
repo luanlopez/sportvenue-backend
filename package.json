@@ -27,12 +27,14 @@
     "@nestjs/mongoose": "^10.0.10",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/schedule": "^4.1.2",
     "@nestjs/swagger": "^7.4.0",
     "@types/passport-google-oauth20": "^2.0.16",
     "appwrite": "^15.0.0",
     "axios": "^1.7.7",
     "class-validator": "^0.14.1",
     "crypto-js": "^4.2.0",
+    "date-fns": "^4.1.0",
     "dd-trace": "^5.30.0",
     "imagekit": "^5.2.0",
     "install": "^0.13.0",
@@ -44,6 +46,7 @@
     "reflect-metadata": "^0.2.0",
     "resend": "^4.0.1",
     "rxjs": "^7.8.1",
+    "stripe": "^17.5.0",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

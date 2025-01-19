@@ -301,34 +301,10 @@ export class AuthService {
     });
   }
 
-  async updateUserType(userId: string, userType: UserType) {
-    try {
-      const user = await this.usersService.updateUserType(userId, userType);
-
-      if (!user) {
-        throw new CustomApiError(
-          ApiMessages.User.NotFound.title,
-          ApiMessages.User.NotFound.message,
-          ErrorCodes.USER_NOT_FOUND,
-          404,
-        );
-      }
-
-      return {
-        message: 'Tipo de usuário atualizado com sucesso',
-        userType: user.userType,
-      };
-    } catch (error) {
-      if (error instanceof CustomApiError) {
-        throw error;
-      }
-
-      throw new CustomApiError(
-        ApiMessages.Generic.InternalError.title,
-        ApiMessages.Generic.InternalError.message,
-        ErrorCodes.INTERNAL_SERVER_ERROR,
-        500,
-      );
-    }
+  async updateUserType(userId: string, userType: UserType, document: string) {
+    return this.usersService.updateUser(userId, {
+      userType,
+      document,
+    });
   }
 }

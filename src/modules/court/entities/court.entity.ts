@@ -53,6 +53,12 @@ export class Court {
 
   @Prop({ type: Boolean, default: true })
   status: boolean;
+
+  @Prop({ type: String, required: true })
+  state: string;
+
+  @Prop({ type: String, required: true })
+  postalCode: string;
 }
 
 export const CourtSchema = SchemaFactory.createForClass(Court);

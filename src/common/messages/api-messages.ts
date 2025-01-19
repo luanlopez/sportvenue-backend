@@ -85,4 +85,43 @@ export const ApiMessages = {
       'API for managing and locating sports venues. Allows users to view, search, and book sports courts, including detailed information about each venue such as address, available hours, and operational status.',
     ApiVersion: '1.0',
   },
+
+  Payment: {
+    Failed: {
+      title: 'Falha no Pagamento',
+      message: 'Não foi possível processar o pagamento',
+    },
+    WebhookFailed: {
+      title: 'Falha no Webhook',
+      message: 'Erro ao processar webhook do Stripe',
+    },
+  },
+
+  Subscription: {
+    NoPlan: {
+      title: 'Plano não encontrado',
+      message: 'Usuário não possui um plano ativo',
+    },
+    PlanNotFound: {
+      title: 'Plano não encontrado',
+      message: 'Plano de assinatura não encontrado',
+    },
+    CourtLimitExceeded: {
+      title: 'Limite de Quadras Atingido',
+      message:
+        'Você atingiu o limite de quadras do seu plano atual. Faça um upgrade para adicionar mais quadras.',
+    },
+    InvalidPlan: {
+      title: 'Plano Inválido',
+      message: 'O plano selecionado é inválido',
+    },
+    Expired: {
+      title: 'Assinatura Expirada',
+      message: 'Sua assinatura expirou. Por favor, renove para continuar.',
+    },
+    UpgradeFailed: {
+      title: 'Falha no Upgrade',
+      message: 'Não foi possível realizar o upgrade do plano',
+    },
+  },
 } as const;

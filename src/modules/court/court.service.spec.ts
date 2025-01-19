@@ -5,6 +5,7 @@ import { ImageKitService } from '../common/imagekit/imagekit.service';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 describe('CourtService', () => {
   let service: CourtService;
@@ -23,6 +24,12 @@ describe('CourtService', () => {
         {
           provide: ImageKitService,
           useValue: {},
+        },
+        {
+          provide: SubscriptionsService,
+          useValue: {
+            validateSubscriptionPlan: jest.fn(),
+          },
         },
       ],
     }).compile();

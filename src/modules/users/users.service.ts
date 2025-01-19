@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/schema/user.schema';
@@ -11,12 +11,16 @@ import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { UserType } from 'src/schema/user.schema';
+import { addDays } from 'date-fns';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly cryptoCommon: CryptoService,
     @InjectModel('User') private readonly userModel: Model<User>,
+    @Inject(forwardRef(() => SubscriptionsService))
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async getAllUsers(): Promise<User[]> {
@@ -47,6 +51,8 @@ export class UsersService {
       userData.password,
     );
 
+    const nextPaymentDate = addDays(new Date(), 7);
+
     const data: Partial<User> = {
       lastName: userData?.lastName,
       firstName: userData?.firstName,
@@ -55,6 +61,8 @@ export class UsersService {
       phone: userData?.phone,
       picture: userData?.picture,
       googleId: userData?.googleId,
+      nextBillingDate: nextPaymentDate,
+      trialEndsAt: nextPaymentDate,
     };
 
     const newUser = await this.userModel.create(data);
@@ -72,6 +80,7 @@ export class UsersService {
     const updatedUser = await this.userModel
       .findByIdAndUpdate(id, userData, { new: true, runValidators: true })
       .exec();
+
     if (!updatedUser) {
       throw new CustomApiError(
         ApiMessages.User.NotFound.title,
@@ -101,5 +110,105 @@ export class UsersService {
       { userType },
       { new: true },
     );
+  }
+
+  async getActiveOwnersForBilling() {
+    const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    return this.userModel.find({
+      userType: UserType.HOUSE_OWNER,
+      createdAt: {
+        $lte: sevenDaysAgo,
+        $lt: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
+      },
+      $or: [
+        { lastBillingDate: { $exists: false } },
+        {
+          lastBillingDate: {
+            $lt: new Date(today.getFullYear(), today.getMonth(), 1),
+          },
+        },
+      ],
+    });
+  }
+
+  async getUsersEndingTrial() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    try {
+      return this.userModel.find({
+        userType: UserType.HOUSE_OWNER,
+        trialEndsAt: {
+          $gte: today,
+          $lt: addDays(today, 1),
+        },
+        lastBillingDate: null,
+      });
+    } catch (error) {
+      throw new Error('Não foi possível buscar os usuários.');
+    }
+  }
+
+  async getUsersForRegularBilling() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    try {
+      return this.userModel.find({
+        userType: UserType.HOUSE_OWNER,
+        trialEndsAt: { $lt: today },
+        nextBillingDate: {
+          $gte: today,
+          $lt: addDays(today, 1),
+        },
+      });
+    } catch (error) {
+      throw new Error('Não foi possível buscar os usuários.');
+    }
+  }
+
+  async assignSubscription(userId: string, subscriptionPlanId: string) {
+    const plan =
+      await this.subscriptionsService.getPlanById(subscriptionPlanId);
+
+    if (!plan.isActive) {
+      throw new CustomApiError(
+        ApiMessages.Subscription.InvalidPlan.title,
+        ApiMessages.Subscription.InvalidPlan.message,
+        ErrorCodes.INVALID_SUBSCRIPTION_PLAN,
+        400,
+      );
+    }
+
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        subscriptionId: subscriptionPlanId,
+      },
+      {
+        new: true,
+        upsert: false,
+      },
+    );
+
+    if (!updatedUser) {
+      throw new CustomApiError(
+        ApiMessages.User.NotFound.title,
+        ApiMessages.User.NotFound.message,
+        ErrorCodes.USER_NOT_FOUND,
+        404,
+      );
+    }
+
+    return {
+      message: 'Plano atribuído com sucesso',
+      plan: {
+        name: plan.name,
+        type: plan.type,
+        courtLimit: plan.courtLimit,
+      },
+      trialEndsAt: updatedUser.trialEndsAt,
+    };
   }
 }

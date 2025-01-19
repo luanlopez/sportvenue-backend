@@ -91,6 +91,8 @@ describe('CourtController', () => {
           monday: ['08:00', '09:00'],
           tuesday: ['08:00', '09:00'],
         },
+        postalCode: '06850-000',
+        state: 'SP',
       };
 
       const user: UserInterface = {
@@ -236,6 +238,8 @@ describe('CourtController', () => {
           monday: ['08:00', '09:00'],
           tuesday: ['08:00', '09:00'],
         },
+        postalCode: '06850-000',
+        state: 'SP',
       };
 
       jest.spyOn(courtService, 'updateCourt').mockResolvedValueOnce(undefined);

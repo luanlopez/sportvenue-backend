@@ -8,6 +8,8 @@ import { ReservationModule } from './modules/reservation/reservation.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CourtModule } from './modules/court/court.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 
 const multerOptions: MulterOptions = {
   fileFilter: (req, file, cb) => {
@@ -29,10 +31,12 @@ const multerOptions: MulterOptions = {
         uri: configService.get<string>('MONGO_URI'),
       }),
     }),
+    SubscriptionsModule,
     CourtModule,
     ReservationModule,
     UsersModule,
     AuthModule,
+    PaymentsModule,
   ],
 })
 export class AppModule {}

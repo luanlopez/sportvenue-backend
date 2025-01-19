@@ -160,6 +160,10 @@ export class AuthController {
           enum: ['USER', 'HOUSE_OWNER'],
           example: 'HOUSE_OWNER',
         },
+        document: {
+          type: 'string',
+          example: '123.456.789-00',
+        },
       },
     },
   })
@@ -167,6 +171,10 @@ export class AuthController {
     @User() user: UserInterface,
     @Body() updateUserTypeDto: UpdateUserTypeDTO,
   ) {
-    return this.authService.updateUserType(user.id, updateUserTypeDto.userType);
+    return this.authService.updateUserType(
+      user.id,
+      updateUserTypeDto.userType,
+      updateUserTypeDto.document,
+    );
   }
 }

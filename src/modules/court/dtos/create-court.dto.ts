@@ -149,4 +149,20 @@ export class CreateCourtDTO {
   @IsObject()
   @IsNotEmpty()
   weeklySchedule: WeeklyScheduleDTO;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'CEP da quadra',
+    example: '12345-678',
+  })
+  postalCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Estado da quadra',
+    example: 'SP',
+  })
+  state: string;
 }

@@ -1,14 +1,22 @@
-import { IsEnum, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserType } from 'src/schema/user.schema';
 
 export class UpdateUserTypeDTO {
-  @ApiProperty({
-    enum: UserType,
-    description: 'Tipo do usuário (USER ou HOUSE_OWNER)',
-    example: UserType.USER,
-  })
   @IsEnum(UserType)
   @IsNotEmpty()
+  @ApiProperty({
+    enum: UserType,
+    description: 'Tipo do usuário',
+    example: UserType.HOUSE_OWNER,
+  })
   userType: UserType;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'CPF ou CNPJ do usuário',
+    example: '123.456.789-00',
+  })
+  document: string;
 }

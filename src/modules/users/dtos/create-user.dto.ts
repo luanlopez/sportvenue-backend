@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsOptional,
   MinLength,
+  IsNotEmpty,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserType } from 'src/schema/user.schema';
@@ -74,6 +75,14 @@ export class CreateUserDTOInput {
   @IsString()
   @IsOptional()
   googleId?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'CPF ou CNPJ do usuário',
+    example: '123.456.789-00',
+  })
+  document?: string;
 }
 
 export class CreateUserDTOOutput {

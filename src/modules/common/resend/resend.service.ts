@@ -1,14 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 import { getVerificationTemplate } from './templates/verification.template';
 import { getReservationNotificationTemplate } from './templates/reservation-notification.template';
 import { getReservationStatusTemplate } from './templates/reservation-status.template';
 import { getReservationCancellationTemplate } from './templates/reservation-cancellation.template';
+import { getPaymentNotificationTemplate } from './templates/payment-notification.template';
 
 @Injectable()
 export class ResendService {
   private resend: Resend;
   private readonly fromEmail = process.env.RESEND_FROM_EMAIL;
+  private readonly logger = new Logger(ResendService.name);
 
   constructor() {
     this.resend = new Resend(process.env.RESEND_API_KEY);
@@ -108,6 +110,28 @@ export class ResendService {
       });
     } catch (error) {
       throw new Error(`Failed to send email: ${error.message}`);
+    }
+  }
+
+  async sendPaymentNotification(
+    email: string,
+    name: string,
+    amount: number,
+    dueDate: Date,
+    boletoUrl: string,
+  ) {
+    try {
+      await this.resend.emails.send({
+        from: 'SportVenue <noreply@sportvenue.com.br>',
+        to: email,
+        subject: 'Novo Boleto Gerado - SportVenue',
+        html: getPaymentNotificationTemplate(name, amount, dueDate, boletoUrl),
+      });
+    } catch (error) {
+      this.logger.error(
+        'Erro ao enviar email de notificação de pagamento:',
+        error,
+      );
     }
   }
 }

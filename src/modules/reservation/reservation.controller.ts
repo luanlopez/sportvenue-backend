@@ -223,24 +223,6 @@ export class ReservationController {
     }
   }
 
-  @Post(':id/approve-cancellation')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HOUSE_OWNER')
-  @ApiOperation({ summary: 'Approve cancellation of a reservation' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Reservation cancellation approved successfully.',
-  })
-  @ApiResponse({
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Internal server error.',
-  })
-  async approveCancellation(
-    @Param('id') id: string,
-  ): Promise<Partial<Reservation>> {
-    return this.reservationService.approveCancellation(id);
-  }
-
   @Post(':id/cancel')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('USER')

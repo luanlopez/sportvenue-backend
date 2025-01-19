@@ -23,19 +23,16 @@ export const getReservationCancellationTemplate = (
         <div class="logo">SportVenue</div>
       </div>
       <div class="content">
-        <h2>Solicitação de Cancelamento de Reserva</h2>
+        <h2>Cancelamento de Reserva</h2>
         <p class="message">
           Olá ${userName},<br>
-          O proprietário ${ownerName} solicitou o cancelamento da sua reserva na quadra "${courtName}".
+          O proprietário ${ownerName} realizou cancelamento da sua reserva na quadra "${courtName}".
         </p>
         <div class="reservation-details">
           <p><strong>Data:</strong> ${weekDayTranslations[dayOfWeek.toLowerCase() as keyof typeof weekDayTranslations]}</p>
           <p><strong>Horário:</strong> ${time}</p>
           ${reason ? `<p><strong>Motivo:</strong> ${reason}</p>` : ''}
         </div>
-        <p class="message">
-          Pedimos desculpas pelo inconveniente. O valor será estornado em até 5 dias úteis.
-        </p>
       </div>
       <div class="footer">
         <p>© ${new Date().getFullYear()} SportVenue. Todos os direitos reservados.</p>

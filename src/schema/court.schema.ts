@@ -29,6 +29,8 @@ export interface Court extends Document {
   status?: boolean;
   createdAt: Date;
   updatedAt: Date;
+  postalCode: string;
+  state: string;
 }
 
 export const CourtSchema = new Schema<Court>(
@@ -99,6 +101,16 @@ export const CourtSchema = new Schema<Court>(
       friday: [String],
       saturday: [String],
       sunday: [String],
+    },
+    postalCode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    state: {
+      type: String,
+      required: true,
+      trim: true,
     },
   },
   {

@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
 import { CreateCourtDTO } from './dtos/create-court.dto';
@@ -11,23 +16,30 @@ import { CourtCategories } from './enums/court-categories.enum';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class CourtService {
   constructor(
     @InjectModel('Court') private readonly courtModel: Model<Court>,
     private readonly imageKitService: ImageKitService,
+    @Inject(forwardRef(() => SubscriptionsService))
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   async create(
     user: UserInterface,
     data: CreateCourtDTO,
   ): Promise<Partial<Court>> {
+    await this.subscriptionsService.validateCourtCreation(user.id);
+
     try {
       const createdCourtData = new this.courtModel({
         ...data,
         ownerId: user?.id,
         status: true,
+        postalCode: data?.postalCode,
+        state: data?.state,
       });
 
       return createdCourtData.save();
@@ -487,5 +499,21 @@ export class CourtService {
         code: ErrorCodes.INTERNAL_SERVER_ERROR,
       });
     }
+  }
+
+  async findOneByOwnerId(ownerId: string) {
+    try {
+      return this.courtModel.findOne({ ownerId }).exec();
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: ApiMessages.Generic.InternalError.message,
+        cause: error?.message,
+        code: ErrorCodes.INTERNAL_SERVER_ERROR,
+      });
+    }
+  }
+
+  async countCourtsByOwner(ownerId: string): Promise<number> {
+    return this.courtModel.countDocuments({ ownerId }).exec();
   }
 }
