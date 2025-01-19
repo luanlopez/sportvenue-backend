@@ -78,4 +78,4 @@ export class SubscriptionsController {
   async deactivatePlan(@Param('id') id: string) {
     return this.subscriptionsService.deactivatePlan(id);
   }
-} 
+}
