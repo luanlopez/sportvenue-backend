@@ -149,6 +149,7 @@ export class AuthService {
       updated_at: userFinded.updatedAt,
       picture: userFinded?.picture,
       googleId: userFinded?.googleId,
+      subscriptionPlanId: String(userFinded?.subscriptionId),
     };
   }
 
@@ -302,6 +303,16 @@ export class AuthService {
   }
 
   async updateUserType(userId: string, userType: UserType, document: string) {
+    const user = await this.usersService.getUserByDocument(document);
+    console.log(user);
+    if (user) {
+      throw new CustomApiError(
+        ApiMessages.Auth.DocumentExists.title,
+        ApiMessages.Auth.DocumentExists.message,
+        ErrorCodes.DOCUMENT_ALREADY_EXISTS,
+        401,
+      );
+    }
     return this.usersService.updateUser(userId, {
       userType,
       document,

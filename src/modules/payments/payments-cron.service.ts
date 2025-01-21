@@ -14,12 +14,12 @@ import { addDays } from 'date-fns';
 import { User } from '../../schema/user.schema';
 import { ResendService } from '../common/resend/resend.service';
 import { CourtService } from '../court/court.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class PaymentsCronService {
   private readonly logger = new Logger(PaymentsCronService.name);
   private stripe: Stripe;
-  private readonly MONTHLY_SUBSCRIPTION_AMOUNT = 10000;
 
   constructor(
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
@@ -27,6 +27,7 @@ export class PaymentsCronService {
     private usersService: UsersService,
     private resendService: ResendService,
     private courtService: CourtService,
+    private subscriptionsService: SubscriptionsService,
   ) {
     this.stripe = new Stripe(configService.get('STRIPE_SECRET_KEY'), {
       apiVersion: '2024-12-18.acacia',
@@ -54,13 +55,13 @@ export class PaymentsCronService {
   private async generateBoletosForUsers(users: User[]) {
     for (const user of users) {
       try {
-        const pendingBoleto = await this.paymentModel.findOne({
+        const pendingPaymentSlip = await this.paymentModel.findOne({
           userId: user.id,
           status: PaymentStatus.PENDING,
           paymentMethod: PaymentMethod.BOLETO,
         });
 
-        if (pendingBoleto) {
+        if (pendingPaymentSlip) {
           this.logger.log(
             `Usuário ${user.id} já possui um boleto pendente. Pulando geração.`,
           );
@@ -85,8 +86,12 @@ export class PaymentsCronService {
           continue;
         }
 
+        const subscriptionPlan = await this.subscriptionsService.getPlanById(
+          String(user?.subscriptionId),
+        );
+
         const paymentIntent = await this.stripe.paymentIntents.create({
-          amount: this.MONTHLY_SUBSCRIPTION_AMOUNT,
+          amount: subscriptionPlan.price / 100,
           currency: 'brl',
           payment_method_types: ['boleto'],
           payment_method_options: {
@@ -119,7 +124,7 @@ export class PaymentsCronService {
         });
 
         const payment = await this.paymentModel.create({
-          amount: this.MONTHLY_SUBSCRIPTION_AMOUNT / 100,
+          amount: subscriptionPlan.price / 100,
           userId: user.id,
           stripePaymentIntentId: paymentIntent.id,
           status: PaymentStatus.PENDING,

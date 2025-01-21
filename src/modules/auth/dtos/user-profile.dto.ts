@@ -8,4 +8,5 @@ export class UserProfileDto {
   userType: string;
   picture?: string;
   googleId?: string;
+  subscriptionPlanId?: string;
 }

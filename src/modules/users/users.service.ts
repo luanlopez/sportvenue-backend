@@ -41,17 +41,39 @@ export class UsersService {
   }
 
   async getUserByEmail(email: string): Promise<User> {
-    const user = await this.userModel.findOne({ email }).exec();
+    try {
+      const user = await this.userModel.findOne({ email }).exec();
 
-    return user;
+      return user;
+    } catch (error) {
+      throw new CustomApiError(
+        ApiMessages.User.NotFound.title,
+        ApiMessages.User.NotFound.message,
+        ErrorCodes.USER_NOT_FOUND,
+        404,
+      );
+    }
+  }
+
+  async getUserByDocument(document: string): Promise<User> {
+    try {
+      const user = await this.userModel.findOne({ document }).exec();
+
+      return user;
+    } catch (error) {
+      throw new CustomApiError(
+        ApiMessages.User.NotFound.title,
+        ApiMessages.User.NotFound.message,
+        ErrorCodes.USER_NOT_FOUND,
+        404,
+      );
+    }
   }
 
   async createUser(userData: CreateUserDTOInput): Promise<CreateUserDTOOutput> {
     const hashedPassword = await this.cryptoCommon.encryptPassword(
       userData.password,
     );
-
-    const nextPaymentDate = addDays(new Date(), 7);
 
     const data: Partial<User> = {
       lastName: userData?.lastName,
@@ -61,8 +83,7 @@ export class UsersService {
       phone: userData?.phone,
       picture: userData?.picture,
       googleId: userData?.googleId,
-      nextBillingDate: nextPaymentDate,
-      trialEndsAt: nextPaymentDate,
+      document: userData?.document,
     };
 
     const newUser = await this.userModel.create(data);
@@ -181,10 +202,15 @@ export class UsersService {
       );
     }
 
+    const trialEndsAt = addDays(new Date(), 7);
+    const nextBillingDate = trialEndsAt;
+
     const updatedUser = await this.userModel.findByIdAndUpdate(
       userId,
       {
         subscriptionId: subscriptionPlanId,
+        trialEndsAt,
+        nextBillingDate,
       },
       {
         new: true,
@@ -209,6 +235,7 @@ export class UsersService {
         courtLimit: plan.courtLimit,
       },
       trialEndsAt: updatedUser.trialEndsAt,
+      nextBillingDate: updatedUser.nextBillingDate,
     };
   }
 }

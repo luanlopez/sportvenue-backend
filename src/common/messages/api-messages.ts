@@ -8,6 +8,10 @@ export const ApiMessages = {
       title: 'Email já Cadastrado',
       message: 'E-mail já existente, tente outro por favor!',
     },
+    DocumentExists: {
+      title: 'CPF já Cadastrado',
+      message: 'CPF já existente, tente outro por favor!',
+    },
     InvalidCode: {
       title: 'Código Inválido',
       message: 'Código de verificação inválido ou expirado',

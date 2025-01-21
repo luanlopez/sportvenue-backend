@@ -9,6 +9,7 @@ import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { ResendModule } from '../common/resend/resend.module';
 import { CourtModule } from '../court/court.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CourtModule } from '../court/court.module';
     UsersModule,
     ResendModule,
     CourtModule,
+    SubscriptionsModule,
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService, PaymentsCronService],
