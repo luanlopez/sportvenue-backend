@@ -13,9 +13,13 @@ import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { UserType } from 'src/schema/user.schema';
 import { addDays } from 'date-fns';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { UpdateUserProfileDTO } from './dtos/update-user-profile.dto';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly cryptoCommon: CryptoService,
     @InjectModel('User') private readonly userModel: Model<User>,
@@ -157,17 +161,46 @@ export class UsersService {
 
   async getUsersEndingTrial() {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const startOfDay = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    );
+    const endOfDay = new Date(
+      Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate() + 1,
+      ),
+    );
+
+    this.logger.log(
+      `Buscando usuários com trial terminando entre ${startOfDay.toISOString()} e ${endOfDay.toISOString()}`,
+    );
+
     try {
-      return this.userModel.find({
-        userType: UserType.HOUSE_OWNER,
-        trialEndsAt: {
-          $gte: today,
-          $lt: addDays(today, 1),
-        },
-        lastBillingDate: null,
+      const users = await this.userModel
+        .find({
+          userType: UserType.HOUSE_OWNER,
+          trialEndsAt: {
+            $gte: startOfDay,
+            $lt: endOfDay,
+          },
+          lastBillingDate: null,
+          subscriptionId: { $exists: true },
+        })
+        .lean();
+
+      this.logger.log(
+        `Encontrados ${users.length} usuários com trial terminando`,
+      );
+      users.forEach((user) => {
+        this.logger.log(
+          `Usuário ${user.email} - Trial termina em: ${user.trialEndsAt}`,
+        );
       });
+
+      return users;
     } catch (error) {
+      this.logger.error('Erro ao buscar usuários com trial terminando:', error);
       throw new Error('Não foi possível buscar os usuários.');
     }
   }
@@ -202,7 +235,15 @@ export class UsersService {
       );
     }
 
-    const trialEndsAt = addDays(new Date(), 7);
+    // Cria as datas em UTC
+    const now = new Date();
+    const trialEndsAt = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + 7, // 7 dias de trial
+      ),
+    );
     const nextBillingDate = trialEndsAt;
 
     const updatedUser = await this.userModel.findByIdAndUpdate(
@@ -237,5 +278,28 @@ export class UsersService {
       trialEndsAt: updatedUser.trialEndsAt,
       nextBillingDate: updatedUser.nextBillingDate,
     };
+  }
+
+  async updateProfile(userId: string, updateData: UpdateUserProfileDTO) {
+    const updatedUser = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        firstName: updateData.firstName,
+        lastName: updateData.lastName,
+        phone: updateData.phone,
+      },
+      { new: true },
+    );
+
+    if (!updatedUser) {
+      throw new CustomApiError(
+        ApiMessages.User.NotFound.title,
+        ApiMessages.User.NotFound.message,
+        ErrorCodes.USER_NOT_FOUND,
+        404,
+      );
+    }
+
+    return updatedUser;
   }
 }
