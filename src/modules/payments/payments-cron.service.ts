@@ -34,8 +34,7 @@ export class PaymentsCronService {
     });
   }
 
-  // @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async checkUsersAndGenerateBoletos() {
     this.logger.log('Iniciando verificação diária de usuários e cobranças');
 
