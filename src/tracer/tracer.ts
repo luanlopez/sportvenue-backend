@@ -20,10 +20,8 @@ const sdk = new NodeSDK({
     headers:
       process.env.NODE_ENV === 'production'
         ? {
-            'x-scope-orgid': process.env.GRAFANA_CLOUD_INSTANCE_ID,
-            Authorization: `Basic ${Buffer.from(
-              `${process.env.GRAFANA_CLOUD_INSTANCE_ID}:${process.env.GRAFANA_CLOUD_API_KEY}`,
-            ).toString('base64')}`,
+            Authorization:
+              'Basic MTE1NzI2OTpnbGNfZXlKdklqb2lNVE16TmpBeE1pSXNJbTRpT2lKemRHRmpheTB4TVRVM01qWTVMVzkwYkhBdGQzSnBkR1V0YzNCdmNuUnRZWEF0WW1GamEyVnVaQzF3Y205a2RXTjBhVzl1SWl3aWF5STZJalUyUlVKUmNXRTBUbkZ5Y1RFME1EVkNOMUprTWpOVlJ5SXNJbTBpT25zaWNpSTZJbkJ5YjJRdGMyRXRaV0Z6ZEMweEluMTk=',
           }
         : undefined,
   }),
