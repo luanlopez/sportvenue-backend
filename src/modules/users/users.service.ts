@@ -15,7 +15,6 @@ import { addDays } from 'date-fns';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { UpdateUserProfileDTO } from './dtos/update-user-profile.dto';
 import { Logger } from '@nestjs/common';
-import { Trace } from '../../common/decorators/trace.decorator';
 
 @Injectable()
 export class UsersService {
@@ -32,7 +31,6 @@ export class UsersService {
     return this.userModel.find().exec();
   }
 
-  @Trace('getUserById')
   async getUserById(id: string): Promise<User> {
     const user = await this.userModel.findById(id).exec();
     if (!user) {

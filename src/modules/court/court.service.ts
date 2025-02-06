@@ -17,8 +17,6 @@ import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { Trace } from 'src/common/decorators/trace.decorator';
-import logger from '../../common/logger/logger';
 
 @Injectable()
 export class CourtService {
@@ -29,7 +27,6 @@ export class CourtService {
     private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
-  @Trace('createCourt')
   async create(
     user: UserInterface,
     data: CreateCourtDTO,
@@ -77,7 +74,6 @@ export class CourtService {
     }
   }
 
-  @Trace('getCourtByID')
   async getCourtByID(courtId: string): Promise<GetCourtDTO> {
     try {
       const court = await this.courtModel
@@ -205,20 +201,12 @@ export class CourtService {
     }
   }
 
-  @Trace('getCourtsWithPagination')
   async getCourtsWithPagination(
     page: number,
     limit: number,
     search?: string,
     sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
-    logger.info('Getting courts with pagination', {
-      page,
-      limit,
-      search,
-      sport,
-    });
-
     try {
       const query: any = {};
 

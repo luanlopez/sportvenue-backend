@@ -32,8 +32,6 @@ import { GetCourtsResponseDTO } from './dtos/list-courts.dto';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CourtCategories } from './enums/court-categories.enum';
-import { Trace } from 'src/common/decorators/trace.decorator';
-import logger from '../../common/logger/logger';
 
 @ApiTags('Courts')
 @Controller('courts')
@@ -43,7 +41,6 @@ export class CourtController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('HOUSE_OWNER')
-  @Trace('createCourt')
   async create(
     @Body() createCourtDTO: CreateCourtDTO,
     @User() user: UserInterface,
@@ -85,7 +82,6 @@ export class CourtController {
   }
 
   @Get(':id')
-  @Trace('getCourtById')
   @ApiOperation({ summary: 'Get a court by ID' })
   @ApiParam({
     name: 'id',
@@ -122,21 +118,12 @@ export class CourtController {
     description: 'List of courts fetched successfully',
     type: GetCourtsResponseDTO,
   })
-  @Trace('getAllCourts')
   async getAllCourts(
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('search') search?: string,
     @Query('sport') sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
-    logger.info('Fetching courts', {
-      page,
-      limit,
-      search,
-      sport,
-      requestId: Math.random().toString(36).substring(7),
-    });
-
     return this.courtService.getCourtsWithPagination(
       page,
       limit,
