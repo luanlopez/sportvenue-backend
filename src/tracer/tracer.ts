@@ -20,8 +20,7 @@ const sdk = new NodeSDK({
     headers:
       process.env.NODE_ENV === 'production'
         ? {
-            Authorization:
-              'Basic MTE1NzI2OTpnbGNfZXlKdklqb2lNVE16TmpBeE1pSXNJbTRpT2lKemRHRmpheTB4TVRVM01qWTVMVzkwYkhBdGQzSnBkR1V0YzNCdmNuUnRZWEF0WW1GamEyVnVaQzF3Y205a2RXTjBhVzl1SWl3aWF5STZJalUyUlVKUmNXRTBUbkZ5Y1RFME1EVkNOMUprTWpOVlJ5SXNJbTBpT25zaWNpSTZJbkJ5YjJRdGMyRXRaV0Z6ZEMweEluMTk=',
+            Authorization: process.env.OTEL_EXPORTER_OTLP_HEADERS.split('=')[1],
           }
         : undefined,
   }),
