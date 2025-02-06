@@ -8,6 +8,17 @@ import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
+const getHeaders = () => {
+  if (process.env.NODE_ENV === 'production') {
+    const headerValue = process.env.OTEL_EXPORTER_OTLP_HEADERS;
+    if (headerValue) {
+      const [key, value] = headerValue.split('=');
+      return { [key.trim()]: value.trim() };
+    }
+  }
+  return undefined;
+};
+
 const sdk = new NodeSDK({
   resource: new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: process.env.OTEL_SERVICE_NAME,
@@ -17,12 +28,7 @@ const sdk = new NodeSDK({
       process.env.NODE_ENV === 'production'
         ? 'https://otlp-gateway-prod-sa-east-1.grafana.net/otlp'
         : process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
-    headers:
-      process.env.NODE_ENV === 'production'
-        ? {
-            Authorization: process.env.OTEL_EXPORTER_OTLP_HEADERS.split('=')[1],
-          }
-        : undefined,
+    headers: getHeaders(),
   }),
   instrumentations: [
     getNodeAutoInstrumentations(),
