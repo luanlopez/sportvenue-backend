@@ -13,7 +13,19 @@ const sdk = new NodeSDK({
     [SemanticResourceAttributes.SERVICE_NAME]: process.env.OTEL_SERVICE_NAME,
   }),
   traceExporter: new OTLPTraceExporter({
-    url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    url:
+      process.env.NODE_ENV === 'production'
+        ? 'https://otlp-gateway-prod-sa-east-1.grafana.net/otlp'
+        : process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    headers:
+      process.env.NODE_ENV === 'production'
+        ? {
+            'x-scope-orgid': process.env.GRAFANA_CLOUD_INSTANCE_ID,
+            Authorization: `Basic ${Buffer.from(
+              `${process.env.GRAFANA_CLOUD_INSTANCE_ID}:${process.env.GRAFANA_CLOUD_API_KEY}`,
+            ).toString('base64')}`,
+          }
+        : undefined,
   }),
   instrumentations: [
     getNodeAutoInstrumentations(),
