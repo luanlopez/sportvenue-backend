@@ -12,7 +12,7 @@ const getHeaders = () => {
   if (process.env.NODE_ENV === 'production') {
     const headerValue = process.env.OTEL_EXPORTER_OTLP_HEADERS;
     if (headerValue) {
-      const [key, value] = headerValue.split('=');
+      const [key, value] = headerValue.replace(/['"]/g, '').split('=');
       return { [key.trim()]: value.trim() };
     }
   }
