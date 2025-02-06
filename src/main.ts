@@ -1,8 +1,7 @@
+import './tracer/tracer';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-
-import './tracer/tracer';
 import { ErrorInterceptor } from './common/interceptors/error.interceptor';
 import { ApiMessages } from './common/messages/api-messages';
 
