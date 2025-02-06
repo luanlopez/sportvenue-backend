@@ -10,11 +10,10 @@ diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
 const getHeaders = () => {
   if (process.env.NODE_ENV === 'production') {
-    const headerValue = process.env.OTEL_EXPORTER_OTLP_HEADERS;
-    if (headerValue) {
-      const [key, value] = headerValue.replace(/['"]/g, '').split('=');
-      return { [key.trim()]: value.trim() };
-    }
+    return {
+      Authorization:
+        'Basic MTE1NzI2OTpnbGNfZXlKdklqb2lNVE16TmpBeE1pSXNJbTRpT2lKemRHRmpheTB4TVRVM01qWTVMVzkwYkhBdGQzSnBkR1V0YzNCdmNuUnRZWEF0WW1GamEyVnVaQzF3Y205a2RXTjBhVzl1SWl3aWF5STZJalUyUlVKUmNXRTBUbkZ5Y1RFME1EVkNOMUprTWpOVlJ5SXNJbTBpT25zaWNpSTZJbkJ5YjJRdGMyRXRaV0Z6ZEMweEluMTk',
+    };
   }
   return undefined;
 };
