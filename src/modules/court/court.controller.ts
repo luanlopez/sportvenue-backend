@@ -32,6 +32,7 @@ import { GetCourtsResponseDTO } from './dtos/list-courts.dto';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CourtCategories } from './enums/court-categories.enum';
+import { lokiLogger } from '../../common/logger/loki-logger';
 
 @ApiTags('Courts')
 @Controller('courts')
@@ -45,7 +46,31 @@ export class CourtController {
     @Body() createCourtDTO: CreateCourtDTO,
     @User() user: UserInterface,
   ) {
-    return this.courtService.create(user, createCourtDTO);
+    await lokiLogger.info('Creating new court', {
+      endpoint: '/courts',
+      method: 'POST',
+      userId: user.id,
+    });
+
+    try {
+      const result = await this.courtService.create(user, createCourtDTO);
+
+      await lokiLogger.info('Court created successfully', {
+        endpoint: '/courts',
+        method: 'POST',
+        courtId: result.id,
+        userId: user.id,
+      });
+
+      return result;
+    } catch (error) {
+      await lokiLogger.error('Failed to create court', error, {
+        endpoint: '/courts',
+        method: 'POST',
+        userId: user.id,
+      });
+      throw error;
+    }
   }
 
   @Post(':id/upload')

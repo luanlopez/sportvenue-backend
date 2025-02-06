@@ -17,6 +17,7 @@ import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { lokiLogger } from '../../common/logger/loki-logger';
 
 @Injectable()
 export class CourtService {
@@ -31,6 +32,11 @@ export class CourtService {
     user: UserInterface,
     data: CreateCourtDTO,
   ): Promise<Partial<Court>> {
+    await lokiLogger.debug('Starting court creation process', {
+      method: 'create',
+      userId: user.id,
+    });
+
     await this.subscriptionsService.validateCourtCreation(user.id);
 
     try {
@@ -42,8 +48,26 @@ export class CourtService {
         state: data?.state,
       });
 
-      return createdCourtData.save();
+      await lokiLogger.debug('Saving court to database', {
+        method: 'create',
+        userId: user.id,
+        courtData: { ...data, owner: user.id },
+      });
+
+      const savedCourt = await createdCourtData.save();
+
+      await lokiLogger.info('Court created successfully', {
+        method: 'create',
+        userId: user.id,
+        courtId: savedCourt.id,
+      });
+
+      return savedCourt;
     } catch (error) {
+      await lokiLogger.error('Failed to create court', error, {
+        method: 'create',
+        userId: user.id,
+      });
       throw new InternalServerErrorException({
         message: error?.message,
         cause: error?.stack,
@@ -75,6 +99,11 @@ export class CourtService {
   }
 
   async getCourtByID(courtId: string): Promise<GetCourtDTO> {
+    await lokiLogger.debug('Fetching court by ID', {
+      method: 'getCourtByID',
+      courtId,
+    });
+
     try {
       const court = await this.courtModel
         .findById(courtId)
@@ -83,6 +112,10 @@ export class CourtService {
         .exec();
 
       if (!court) {
+        await lokiLogger.error('Court not found', null, {
+          method: 'getCourtByID',
+          courtId,
+        });
         throw new CustomApiError(
           ApiMessages.Court.NotFound.title,
           ApiMessages.Court.NotFound.message,
@@ -90,6 +123,11 @@ export class CourtService {
           404,
         );
       }
+
+      await lokiLogger.info('Court found successfully', {
+        method: 'getCourtByID',
+        courtId,
+      });
 
       const userDetails: any = court?.ownerId;
 
@@ -120,6 +158,10 @@ export class CourtService {
 
       return courtsWithUserDetails;
     } catch (error) {
+      await lokiLogger.error('Failed to fetch court', error, {
+        method: 'getCourtByID',
+        courtId,
+      });
       if (error instanceof CustomApiError) {
         throw error;
       }
@@ -207,6 +249,11 @@ export class CourtService {
     search?: string,
     sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
+    await lokiLogger.debug('Fetching courts with pagination', {
+      method: 'getCourtsWithPagination',
+      params: { page, limit, search, sport },
+    });
+
     try {
       const query: any = {};
 
@@ -260,11 +307,21 @@ export class CourtService {
         };
       });
 
+      await lokiLogger.info('Courts fetched successfully', {
+        method: 'getCourtsWithPagination',
+        totalCourts: total,
+        returnedCourts: courts.length,
+      });
+
       return {
         data: courtsWithUserDetails,
         total,
       };
     } catch (error) {
+      await lokiLogger.error('Failed to fetch courts', error, {
+        method: 'getCourtsWithPagination',
+        params: { page, limit, search, sport },
+      });
       throw new InternalServerErrorException({
         message: ApiMessages.Generic.InternalError.message,
         cause: error?.message,
