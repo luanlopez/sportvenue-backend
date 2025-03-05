@@ -1,1 +1,1 @@
-web: npm i -g @nestjs/cli && npm ci && npm run build && npm run start:prod
+web: npm ci && NODE_ENV=production npx @nestjs/cli build && npm run start:prod
