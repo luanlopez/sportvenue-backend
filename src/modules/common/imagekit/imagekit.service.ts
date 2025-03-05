@@ -1,6 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import ImageKit = require('imagekit');
 import { v4 as uuidv4 } from 'uuid';
+import { Express } from 'express';
 
 @Injectable()
 export class ImageKitService {
@@ -14,7 +15,7 @@ export class ImageKitService {
     });
   }
 
-  async uploadFiles(files: Express.Multer.File[]): Promise<any[]> {
+  async uploadFiles(files: Array<Express.Multer.File>): Promise<any[]> {
     const uploadPromises = files.map(async (file) => {
       const fileId = uuidv4();
       try {
