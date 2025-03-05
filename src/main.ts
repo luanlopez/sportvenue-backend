@@ -23,7 +23,7 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT || 3000);
   await lokiLogger.info(
-    `Application started successfully on port: ${process.env.PORT || 3000}`,
+    `Application started successfully on ports: ${process.env.PORT || 3000}`,
   );
 }
 
