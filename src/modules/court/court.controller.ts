@@ -32,12 +32,15 @@ import { GetCourtsResponseDTO } from './dtos/list-courts.dto';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CourtCategories } from './enums/court-categories.enum';
-import { lokiLogger } from '../../common/logger/loki-logger';
+import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 @ApiTags('Courts')
 @Controller('courts')
 export class CourtController {
-  constructor(private readonly courtService: CourtService) {}
+  constructor(
+    private readonly courtService: CourtService,
+    private readonly lokiLogger: LokiLoggerService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -46,16 +49,17 @@ export class CourtController {
     @Body() createCourtDTO: CreateCourtDTO,
     @User() user: UserInterface,
   ) {
-    await lokiLogger.info('Creating new court', {
+    await this.lokiLogger.info('Creating new court', {
       endpoint: '/courts',
       method: 'POST',
       userId: user.id,
+      body: JSON.stringify(createCourtDTO),
     });
 
     try {
       const result = await this.courtService.create(user, createCourtDTO);
 
-      await lokiLogger.info('Court created successfully', {
+      await this.lokiLogger.info('Court created successfully', {
         endpoint: '/courts',
         method: 'POST',
         courtId: result.id,
@@ -64,7 +68,7 @@ export class CourtController {
 
       return result;
     } catch (error) {
-      await lokiLogger.error('Failed to create court', error, {
+      await this.lokiLogger.error('Failed to create court', error, {
         endpoint: '/courts',
         method: 'POST',
         userId: user.id,
@@ -93,15 +97,40 @@ export class CourtController {
   })
   async uploadImages(
     @Param('id') courtId: string,
-    @UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles() files: any,
   ) {
+    await this.lokiLogger.info('Starting image upload', {
+      endpoint: '/courts/:id/upload',
+      method: 'POST',
+      courtId,
+      filesCount: files?.length,
+    });
+
     if (!files || files.length === 0) {
+      await this.lokiLogger.error('No files provided for upload', null, {
+        endpoint: '/courts/:id/upload',
+        method: 'POST',
+        courtId,
+      });
       throw new BadRequestException('No files provided');
     }
+
     try {
       await this.courtService.uploadImages(courtId, files);
+      await this.lokiLogger.info('Images uploaded successfully', {
+        endpoint: '/courts/:id/upload',
+        method: 'POST',
+        courtId,
+        filesCount: files.length,
+      });
+
       return { message: 'Images uploaded successfully' };
     } catch (error) {
+      await this.lokiLogger.error('Failed to upload images', error, {
+        endpoint: '/courts/:id/upload',
+        method: 'POST',
+        courtId,
+      });
       throw new BadRequestException(error.message);
     }
   }
@@ -119,7 +148,29 @@ export class CourtController {
     type: GetCourtDTO,
   })
   async getCourtByID(@Param('id') courtId: string): Promise<GetCourtDTO> {
-    return await this.courtService.getCourtByID(courtId);
+    await this.lokiLogger.info('Fetching court by ID', {
+      endpoint: '/courts/:id',
+      method: 'GET',
+      courtId,
+    });
+
+    try {
+      const court = await this.courtService.getCourtByID(courtId);
+      await this.lokiLogger.info('Court fetched successfully', {
+        endpoint: '/courts/:id',
+        method: 'GET',
+        courtId,
+      });
+
+      return court;
+    } catch (error) {
+      await this.lokiLogger.error('Failed to fetch court', error, {
+        endpoint: '/courts/:id',
+        method: 'GET',
+        courtId,
+      });
+      throw error;
+    }
   }
 
   @Get()
@@ -149,12 +200,36 @@ export class CourtController {
     @Query('search') search?: string,
     @Query('sport') sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
-    return this.courtService.getCourtsWithPagination(
-      page,
-      limit,
-      search,
-      sport,
-    );
+    await this.lokiLogger.info('Fetching all courts', {
+      endpoint: '/courts',
+      method: 'GET',
+      params: { page, limit, search, sport },
+    });
+
+    try {
+      const result = await this.courtService.getCourtsWithPagination(
+        page,
+        limit,
+        search,
+        sport,
+      );
+
+      await this.lokiLogger.info('Courts fetched successfully', {
+        endpoint: '/courts',
+        method: 'GET',
+        totalCourts: result.total,
+        returnedCourts: result.data.length,
+      });
+      return result;
+    } catch (error) {
+      await this.lokiLogger.error('Failed to fetch courts', error, {
+        endpoint: '/courts',
+        method: 'GET',
+        params: { page, limit, search, sport },
+        error: error,
+      });
+      throw error;
+    }
   }
 
   @Get('/owner/:id')
@@ -182,23 +257,47 @@ export class CourtController {
     type: GetCourtsResponseDTO,
   })
   async getAllCourtsByOwnerID(
-    @Param('id') courtId: string,
+    @Param('id') ownerId: string,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
     @Query('search') search?: string,
     @Query('sport') sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
-    return this.courtService.getCourtsByOwnerWithPagination(
-      courtId,
-      page,
-      limit,
-      search,
-      sport,
-    );
+    await this.lokiLogger.info('Fetching courts by owner', {
+      endpoint: '/courts/owner/:id',
+      method: 'GET',
+      ownerId,
+      params: { page, limit, search, sport },
+    });
+
+    try {
+      const result = await this.courtService.getCourtsByOwnerWithPagination(
+        ownerId,
+        page,
+        limit,
+        search,
+        sport,
+      );
+      await this.lokiLogger.info('Owner courts fetched successfully', {
+        endpoint: '/courts/owner/:id',
+        method: 'GET',
+        ownerId,
+        totalCourts: result.total,
+        returnedCourts: result.data.length,
+      });
+      return result;
+    } catch (error) {
+      await this.lokiLogger.error('Failed to fetch owner courts', error, {
+        endpoint: '/courts/owner/:id',
+        method: 'GET',
+        ownerId,
+        params: { page, limit, search, sport },
+      });
+      throw error;
+    }
   }
 
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('HOUSE_OWNER')
   @ApiOperation({ summary: 'Update a court by ID' })
@@ -215,7 +314,32 @@ export class CourtController {
     @Param('id') courtId: string,
     @Body() updateCourtDTO: CreateCourtDTO,
   ) {
-    return this.courtService.updateCourt(courtId, updateCourtDTO);
+    await this.lokiLogger.info('Updating court', {
+      endpoint: '/courts/:id',
+      method: 'PUT',
+      courtId,
+      body: JSON.stringify(updateCourtDTO),
+    });
+
+    try {
+      const result = await this.courtService.updateCourt(
+        courtId,
+        updateCourtDTO,
+      );
+      await this.lokiLogger.info('Court updated successfully', {
+        endpoint: '/courts/:id',
+        method: 'PUT',
+        courtId,
+      });
+      return result;
+    } catch (error) {
+      await this.lokiLogger.error('Failed to update court', error, {
+        endpoint: '/courts/:id',
+        method: 'PUT',
+        courtId,
+      });
+      throw error;
+    }
   }
 
   @Delete(':id')
@@ -232,8 +356,28 @@ export class CourtController {
     description: 'Court deleted successfully',
   })
   async deleteCourt(@Param('id') courtId: string) {
-    await this.courtService.deleteCourt(courtId);
-    return { message: 'Court deleted successfully' };
+    await this.lokiLogger.info('Deleting court', {
+      endpoint: '/courts/:id',
+      method: 'DELETE',
+      courtId,
+    });
+
+    try {
+      await this.courtService.deleteCourt(courtId);
+      await this.lokiLogger.info('Court deleted successfully', {
+        endpoint: '/courts/:id',
+        method: 'DELETE',
+        courtId,
+      });
+      return { message: 'Court deleted successfully' };
+    } catch (error) {
+      await this.lokiLogger.error('Failed to delete court', error, {
+        endpoint: '/courts/:id',
+        method: 'DELETE',
+        courtId,
+      });
+      throw error;
+    }
   }
 
   @Patch(':id/inactivate')
@@ -250,7 +394,28 @@ export class CourtController {
     description: 'Court inactivated successfully',
   })
   async inactivateCourt(@Param('id') courtId: string) {
-    return this.courtService.deactivateCourt(courtId);
+    await this.lokiLogger.info('Inactivating court', {
+      endpoint: '/courts/:id/inactivate',
+      method: 'PATCH',
+      courtId,
+    });
+
+    try {
+      const result = await this.courtService.deactivateCourt(courtId);
+      await this.lokiLogger.info('Court inactivated successfully', {
+        endpoint: '/courts/:id/inactivate',
+        method: 'PATCH',
+        courtId,
+      });
+      return result;
+    } catch (error) {
+      await this.lokiLogger.error('Failed to inactivate court', error, {
+        endpoint: '/courts/:id/inactivate',
+        method: 'PATCH',
+        courtId,
+      });
+      throw error;
+    }
   }
 
   @Patch(':id/activate')
@@ -267,7 +432,28 @@ export class CourtController {
     description: 'Court activated successfully',
   })
   async activateCourt(@Param('id') courtId: string) {
-    return this.courtService.activateCourt(courtId);
+    await this.lokiLogger.info('Activating court', {
+      endpoint: '/courts/:id/activate',
+      method: 'PATCH',
+      courtId,
+    });
+
+    try {
+      const result = await this.courtService.activateCourt(courtId);
+      await this.lokiLogger.info('Court activated successfully', {
+        endpoint: '/courts/:id/activate',
+        method: 'PATCH',
+        courtId,
+      });
+      return result;
+    } catch (error) {
+      await this.lokiLogger.error('Failed to activate court', error, {
+        endpoint: '/courts/:id/activate',
+        method: 'PATCH',
+        courtId,
+      });
+      throw error;
+    }
   }
 
   @Delete(':id/images')
@@ -295,6 +481,29 @@ export class CourtController {
     @Param('id') id: string,
     @Body('images') images: string[],
   ): Promise<any> {
-    return this.courtService.removeImage(id, images);
+    await this.lokiLogger.info('Removing court images', {
+      endpoint: '/courts/:id/images',
+      method: 'DELETE',
+      courtId: id,
+      imagesCount: images?.length,
+    });
+
+    try {
+      const result = await this.courtService.removeImage(id, images);
+      await this.lokiLogger.info('Court images removed successfully', {
+        endpoint: '/courts/:id/images',
+        method: 'DELETE',
+        courtId: id,
+        imagesCount: images?.length,
+      });
+      return result;
+    } catch (error) {
+      await this.lokiLogger.error('Failed to remove court images', error, {
+        endpoint: '/courts/:id/images',
+        method: 'DELETE',
+        courtId: id,
+      });
+      throw error;
+    }
   }
 }

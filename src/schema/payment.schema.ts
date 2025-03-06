@@ -4,10 +4,10 @@ import { Document, Schema as MongooseSchema } from 'mongoose';
 export type PaymentDocument = Payment & Document;
 
 export enum PaymentStatus {
-  PENDING = 'pending',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  REFUNDED = 'refunded',
+  PENDING = 'PENDING',
+  PAID = 'PAID',
+  EXPIRED = 'EXPIRED',
+  CANCELED = 'CANCELED',
 }
 
 export enum PaymentMethod {

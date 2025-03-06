@@ -17,7 +17,7 @@ import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { lokiLogger } from '../../common/logger/loki-logger';
+import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 @Injectable()
 export class CourtService {
@@ -26,13 +26,14 @@ export class CourtService {
     private readonly imageKitService: ImageKitService,
     @Inject(forwardRef(() => SubscriptionsService))
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly lokiLogger: LokiLoggerService,
   ) {}
 
   async create(
     user: UserInterface,
     data: CreateCourtDTO,
   ): Promise<Partial<Court>> {
-    await lokiLogger.debug('Starting court creation process', {
+    await this.lokiLogger.debug('Starting court creation process', {
       method: 'create',
       userId: user.id,
     });
@@ -48,7 +49,7 @@ export class CourtService {
         state: data?.state,
       });
 
-      await lokiLogger.debug('Saving court to database', {
+      await this.lokiLogger.debug('Saving court to database', {
         method: 'create',
         userId: user.id,
         courtData: { ...data, owner: user.id },
@@ -56,7 +57,7 @@ export class CourtService {
 
       const savedCourt = await createdCourtData.save();
 
-      await lokiLogger.info('Court created successfully', {
+      await this.lokiLogger.info('Court created successfully', {
         method: 'create',
         userId: user.id,
         courtId: savedCourt.id,
@@ -64,7 +65,7 @@ export class CourtService {
 
       return savedCourt;
     } catch (error) {
-      await lokiLogger.error('Failed to create court', error, {
+      await this.lokiLogger.error('Failed to create court', error, {
         method: 'create',
         userId: user.id,
       });
@@ -99,7 +100,7 @@ export class CourtService {
   }
 
   async getCourtByID(courtId: string): Promise<GetCourtDTO> {
-    await lokiLogger.debug('Fetching court by ID', {
+    await this.lokiLogger.debug('Fetching court by ID', {
       method: 'getCourtByID',
       courtId,
     });
@@ -112,7 +113,7 @@ export class CourtService {
         .exec();
 
       if (!court) {
-        await lokiLogger.error('Court not found', null, {
+        await this.lokiLogger.error('Court not found', null, {
           method: 'getCourtByID',
           courtId,
         });
@@ -124,7 +125,7 @@ export class CourtService {
         );
       }
 
-      await lokiLogger.info('Court found successfully', {
+      await this.lokiLogger.info('Court found successfully', {
         method: 'getCourtByID',
         courtId,
       });
@@ -158,7 +159,7 @@ export class CourtService {
 
       return courtsWithUserDetails;
     } catch (error) {
-      await lokiLogger.error('Failed to fetch court', error, {
+      await this.lokiLogger.error('Failed to fetch court', error, {
         method: 'getCourtByID',
         courtId,
       });
@@ -249,7 +250,7 @@ export class CourtService {
     search?: string,
     sport?: CourtCategories,
   ): Promise<GetCourtsResponseDTO> {
-    await lokiLogger.debug('Fetching courts with pagination', {
+    await this.lokiLogger.debug('Fetching courts with pagination', {
       method: 'getCourtsWithPagination',
       params: { page, limit, search, sport },
     });
@@ -307,7 +308,7 @@ export class CourtService {
         };
       });
 
-      await lokiLogger.info('Courts fetched successfully', {
+      await this.lokiLogger.info('Courts fetched successfully', {
         method: 'getCourtsWithPagination',
         totalCourts: total,
         returnedCourts: courts.length,
@@ -318,7 +319,7 @@ export class CourtService {
         total,
       };
     } catch (error) {
-      await lokiLogger.error('Failed to fetch courts', error, {
+      await this.lokiLogger.error('Failed to fetch courts', error, {
         method: 'getCourtsWithPagination',
         params: { page, limit, search, sport },
       });

@@ -42,31 +42,30 @@ export class AuthService {
       );
     }
 
-    const getTokensExistents = await this.verificationModel.find({
-      email: preRegisterDto.email,
-    });
-
-    if (getTokensExistents.length > 0) {
-      await this.verificationModel.updateMany(
-        { email: preRegisterDto.email },
-        { isUsed: true },
-      );
-    }
+    await this.verificationModel.updateMany(
+      { 
+        email: preRegisterDto.email,
+        isUsed: false 
+      },
+      { 
+        isUsed: true 
+      }
+    );
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
 
     const verificationCode = new this.verificationModel({
       email: preRegisterDto.email,
       code,
-      expiresAt,
+      isUsed: false,
       userData: {
         firstName: preRegisterDto.firstName,
         lastName: preRegisterDto.lastName,
+        userType: preRegisterDto?.userType,
         phone: preRegisterDto.phone,
         password: preRegisterDto.password,
       },
+      expiresAt: new Date(new Date().getTime() + 5 * 60 * 1000),
     });
 
     await verificationCode.save();
@@ -84,28 +83,28 @@ export class AuthService {
   async completeRegistration(
     verifyDto: VerifyRegistrationDTO,
   ): Promise<{ accessToken: string }> {
-    const currentTime = new Date();
-
     const verification = await this.verificationModel.findOne({
       code: verifyDto.code,
       isUsed: false,
-      expiresAt: { $gt: currentTime },
     });
-
-    if (currentTime > verification?.expiresAt) {
-      throw new CustomApiError(
-        ApiMessages.Auth.TokenExpired.title,
-        ApiMessages.Auth.TokenExpired.message,
-        ErrorCodes.TOKEN_EXPIRED,
-        401,
-      );
-    }
 
     if (!verification) {
       throw new CustomApiError(
         ApiMessages.Auth.InvalidCredentials.title,
         ApiMessages.Auth.InvalidCredentials.message,
         ErrorCodes.INVALID_CREDENTIALS,
+        401,
+      );
+    }
+
+    const expirationTime = new Date(verification.expiresAt);
+    expirationTime.setMinutes(expirationTime.getMinutes() + 5);
+
+    if (expirationTime < new Date()) {
+      throw new CustomApiError(
+        ApiMessages.Auth.TokenExpired.title,
+        ApiMessages.Auth.TokenExpired.message,
+        ErrorCodes.TOKEN_EXPIRED,
         401,
       );
     }

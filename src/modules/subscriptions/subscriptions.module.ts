@@ -5,6 +5,7 @@ import { CourtModule } from '../court/court.module';
 import { SubscriptionsService } from './subscriptions.service';
 import { UsersModule } from '../users/users.module';
 import { SubscriptionsController } from './subscriptions.controller';
+import { LokiLoggerModule } from 'src/common/logger/loki-logger.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { SubscriptionsController } from './subscriptions.controller';
     ]),
     forwardRef(() => CourtModule),
     forwardRef(() => UsersModule),
+    LokiLoggerModule,
   ],
   providers: [SubscriptionsService],
   controllers: [SubscriptionsController],

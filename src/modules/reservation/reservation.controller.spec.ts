@@ -8,6 +8,7 @@ import { CreateReservationDTO } from './dtos/create-reservation.dto';
 import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 import { InternalServerErrorException } from '@nestjs/common';
 import { ReservationType } from './enums/reservation-type.enum';
+import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 describe('ReservationController', () => {
   let reservationController: ReservationController;
@@ -26,6 +27,14 @@ describe('ReservationController', () => {
             findByUserWithPaginationAndStatus: jest.fn(),
             approveCancellation: jest.fn(),
             cancellingReservaition: jest.fn(),
+          },
+        },
+        {
+          provide: LokiLoggerService,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
           },
         },
       ],
@@ -91,11 +100,19 @@ describe('ReservationController', () => {
         status: 'approved',
       };
 
+      const user: UserInterface = {
+        id: 'owner123',
+        email: 'example@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        userType: 'HOUSE_OWNER',
+      };
+
       jest
         .spyOn(reservationService, 'updateReservationStatus')
         .mockResolvedValue(reservation);
 
-      const result = await reservationController.approve('reservation123');
+      const result = await reservationController.approve('reservation123', user);
       expect(reservationService.updateReservationStatus).toHaveBeenCalledWith(
         'reservation123',
         'approved',
@@ -104,12 +121,20 @@ describe('ReservationController', () => {
     });
 
     it('should throw an error if approval fails', async () => {
+      const user: UserInterface = {
+        id: 'owner123',
+        email: 'example@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        userType: 'HOUSE_OWNER',
+      };
+
       jest
         .spyOn(reservationService, 'updateReservationStatus')
         .mockRejectedValue(new Error('Approval failed'));
 
       try {
-        await reservationController.approve('reservation123');
+        await reservationController.approve('reservation123', user);
       } catch (error) {
         expect(error).toBeInstanceOf(InternalServerErrorException);
       }
@@ -122,11 +147,19 @@ describe('ReservationController', () => {
         status: 'approved',
       };
 
+      const user: UserInterface = {
+        id: 'owner123',
+        email: 'example@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        userType: 'HOUSE_OWNER',
+      };
+
       jest
         .spyOn(reservationService, 'updateReservationStatus')
         .mockResolvedValue(reservation);
 
-      const result = await reservationController.reject('reservation123');
+      const result = await reservationController.reject('reservation123', user);
       expect(reservationService.updateReservationStatus).toHaveBeenCalledWith(
         'reservation123',
         'rejected',
@@ -135,12 +168,20 @@ describe('ReservationController', () => {
     });
 
     it('should throw an error if rejection fails', async () => {
+      const user: UserInterface = {
+        id: 'owner123',
+        email: 'example@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        userType: 'HOUSE_OWNER',
+      };
+
       jest
         .spyOn(reservationService, 'updateReservationStatus')
         .mockRejectedValue(new Error('Rejection failed'));
 
       try {
-        await reservationController.reject('reservation123');
+        await reservationController.reject('reservation123', user);
       } catch (error) {
         expect(error).toBeInstanceOf(InternalServerErrorException);
       }

@@ -25,11 +25,15 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 import { User } from '../auth/user.decorator';
+import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 @ApiTags('Reservations')
 @Controller('reservations')
 export class ReservationController {
-  constructor(private readonly reservationService: ReservationService) {}
+  constructor(
+    private readonly reservationService: ReservationService,
+    private readonly lokiLogger: LokiLoggerService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -48,14 +52,35 @@ export class ReservationController {
     @Body() createReservationDto: CreateReservationDTO,
     @User() user: UserInterface,
   ) {
+    await this.lokiLogger.info('Creating new reservation', {
+      endpoint: '/reservations',
+      method: 'POST',
+      userId: user.id,
+      body: JSON.stringify(createReservationDto),
+    });
+
     try {
       const reservation = await this.reservationService.create(
         user,
         createReservationDto,
       );
 
+      await this.lokiLogger.info('Reservation created successfully', {
+        endpoint: '/reservations',
+        method: 'POST',
+        userId: user.id,
+        reservationId: reservation.id,
+      });
+
       return reservation;
     } catch (error) {
+      await this.lokiLogger.error('Failed to create reservation', error, {
+        endpoint: '/reservations',
+        method: 'POST',
+        userId: user.id,
+        body: JSON.stringify(createReservationDto),
+      });
+
       throw new InternalServerErrorException({
         message: 'Failed to create reservation',
         cause: error?.message,
@@ -75,13 +100,36 @@ export class ReservationController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: 'Internal server error.',
   })
-  async approve(@Param('id') id: string): Promise<Partial<Reservation>> {
+  async approve(@Param('id') id: string, @User() user: UserInterface): Promise<Partial<Reservation>> {
+    await this.lokiLogger.info('Approving reservation', {
+      endpoint: '/reservations/:id/approve',
+      method: 'PATCH',
+      userId: user.id,
+      reservationId: id,
+    });
+
     try {
-      return await this.reservationService.updateReservationStatus(
+      const result = await this.reservationService.updateReservationStatus(
         id,
         'approved',
       );
+
+      await this.lokiLogger.info('Reservation approved successfully', {
+        endpoint: '/reservations/:id/approve',
+        method: 'PATCH',
+        userId: user.id,
+        reservationId: id,
+      });
+
+      return result;
     } catch (error) {
+      await this.lokiLogger.error('Failed to approve reservation', error, {
+        endpoint: '/reservations/:id/approve',
+        method: 'PATCH',
+        userId: user.id,
+        reservationId: id,
+      });
+
       throw new InternalServerErrorException({
         message: 'Failed to approve reservation',
         cause: error?.message,
@@ -101,13 +149,36 @@ export class ReservationController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: 'Internal server error.',
   })
-  async reject(@Param('id') id: string): Promise<Partial<Reservation>> {
+  async reject(@Param('id') id: string, @User() user: UserInterface): Promise<Partial<Reservation>> {
+    await this.lokiLogger.info('Rejecting reservation', {
+      endpoint: '/reservations/:id/reject',
+      method: 'PATCH',
+      userId: user.id,
+      reservationId: id,
+    });
+
     try {
-      return await this.reservationService.updateReservationStatus(
+      const result = await this.reservationService.updateReservationStatus(
         id,
         'rejected',
       );
+
+      await this.lokiLogger.info('Reservation rejected successfully', {
+        endpoint: '/reservations/:id/reject',
+        method: 'PATCH',
+        userId: user.id,
+        reservationId: id,
+      });
+
+      return result;
     } catch (error) {
+      await this.lokiLogger.error('Failed to reject reservation', error, {
+        endpoint: '/reservations/:id/reject',
+        method: 'PATCH',
+        userId: user.id,
+        reservationId: id,
+      });
+
       throw new InternalServerErrorException({
         message: 'Failed to reject reservation',
         cause: error?.message,
@@ -156,12 +227,36 @@ export class ReservationController {
     @Query('limit') limit: number = 10,
     @Query('status') status?: string,
   ): Promise<{ data: Partial<Reservation>[]; total: number }> {
+    await this.lokiLogger.info('Fetching owner reservations', {
+      endpoint: '/reservations/owner',
+      method: 'GET',
+      userId: user.id,
+      params: { page, limit, status },
+    });
+
     try {
-      return await this.reservationService.findByOwnerWithPaginationAndStatus(
+      const result = await this.reservationService.findByOwnerWithPaginationAndStatus(
         user,
         { page, limit, status },
       );
+
+      await this.lokiLogger.info('Owner reservations fetched successfully', {
+        endpoint: '/reservations/owner',
+        method: 'GET',
+        userId: user.id,
+        totalReservations: result.total,
+        returnedReservations: result.data.length,
+      });
+
+      return result;
     } catch (error) {
+      await this.lokiLogger.error('Failed to fetch owner reservations', error, {
+        endpoint: '/reservations/owner',
+        method: 'GET',
+        userId: user.id,
+        params: { page, limit, status },
+      });
+
       throw new InternalServerErrorException({
         message: 'Failed to fetch reservations by owner',
         cause: error?.message,
@@ -210,12 +305,36 @@ export class ReservationController {
     @Query('limit') limit: number = 10,
     @Query('status') status?: string,
   ): Promise<{ data: Partial<Reservation>[]; total: number }> {
+    await this.lokiLogger.info('Fetching user reservations', {
+      endpoint: '/reservations/user',
+      method: 'GET',
+      userId: user.id,
+      params: { page, limit, status },
+    });
+
     try {
-      return await this.reservationService.findByUserWithPaginationAndStatus(
+      const result = await this.reservationService.findByUserWithPaginationAndStatus(
         user,
         { page, limit, status },
       );
+
+      await this.lokiLogger.info('User reservations fetched successfully', {
+        endpoint: '/reservations/user',
+        method: 'GET',
+        userId: user.id,
+        totalReservations: result.total,
+        returnedReservations: result.data.length,
+      });
+
+      return result;
     } catch (error) {
+      await this.lokiLogger.error('Failed to fetch user reservations', error, {
+        endpoint: '/reservations/user',
+        method: 'GET',
+        userId: user.id,
+        params: { page, limit, status },
+      });
+
       throw new InternalServerErrorException({
         message: 'Failed to fetch reservations by user',
         cause: error?.message,
@@ -248,8 +367,41 @@ export class ReservationController {
   })
   async cancelReservation(
     @Param('id') id: string,
+    @User() user: UserInterface,
     @Body('reason') reason?: string,
   ): Promise<Partial<Reservation>> {
-    return this.reservationService.cancellingReservaition(id, reason);
+    await this.lokiLogger.info('Cancelling reservation', {
+      endpoint: '/reservations/:id/cancel',
+      method: 'POST',
+      userId: user.id,
+      reservationId: id,
+      body: JSON.stringify({ reason }),
+    });
+
+    try {
+      const result = await this.reservationService.cancellingReservaition(id, reason);
+
+      await this.lokiLogger.info('Reservation cancelled successfully', {
+        endpoint: '/reservations/:id/cancel',
+        method: 'POST',
+        userId: user.id,
+        reservationId: id,
+      });
+
+      return result;
+    } catch (error) {
+      await this.lokiLogger.error('Failed to cancel reservation', error, {
+        endpoint: '/reservations/:id/cancel',
+        method: 'POST',
+        userId: user.id,
+        reservationId: id,
+        body: JSON.stringify({ reason }),
+      });
+
+      throw new InternalServerErrorException({
+        message: 'Failed to cancel reservation',
+        cause: error?.message,
+      });
+    }
   }
 }

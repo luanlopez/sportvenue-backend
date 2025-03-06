@@ -6,6 +6,7 @@ import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 describe('CourtService', () => {
   let service: CourtService;
@@ -19,6 +20,14 @@ describe('CourtService', () => {
           provide: getModelToken('Court'),
           useValue: {
             findById: jest.fn(),
+          },
+        },
+        {
+          provide: LokiLoggerService,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
           },
         },
         {

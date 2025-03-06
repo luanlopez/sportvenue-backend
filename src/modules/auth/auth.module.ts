@@ -11,6 +11,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { VerificationCodeSchema } from 'src/schema/verification-code.schema';
 import { ResendModule } from '../common/resend/resend.module';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { LokiLoggerModule } from 'src/common/logger/loki-logger.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
       { name: 'VerificationCode', schema: VerificationCodeSchema },
     ]),
     ResendModule,
+    LokiLoggerModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy],

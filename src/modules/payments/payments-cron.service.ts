@@ -30,7 +30,7 @@ export class PaymentsCronService {
     private subscriptionsService: SubscriptionsService,
   ) {
     this.stripe = new Stripe(configService.get('STRIPE_SECRET_KEY'), {
-      apiVersion: '2024-12-18.acacia',
+      apiVersion: '2025-02-24.acacia',
     });
   }
 
@@ -156,6 +156,93 @@ export class PaymentsCronService {
           error,
         );
       }
+    }
+  }
+
+  @Cron('0 */6 * * *')
+  async checkPendingPayments() {
+    this.logger.log('Iniciando verificação de pagamentos pendentes');
+
+    try {
+      const pendingPayments = await this.paymentModel.find({
+        status: PaymentStatus.PENDING,
+        paymentMethod: PaymentMethod.BOLETO,
+      });
+
+      this.logger.log(`Encontrados ${pendingPayments.length} pagamentos pendentes`);
+
+      for (const payment of pendingPayments) {
+        try {
+          const paymentIntent = await this.stripe.paymentIntents.retrieve(
+            payment.stripePaymentIntentId,
+          );
+
+          let newStatus = payment.status;
+          const now = new Date();
+
+          switch (paymentIntent.status) {
+            case 'succeeded':
+              newStatus = PaymentStatus.PAID;
+              break;
+            case 'canceled':
+              newStatus = PaymentStatus.CANCELED;
+              break;
+            case 'requires_payment_method':
+              if (payment.boletoExpirationDate && payment.boletoExpirationDate < now) {
+                newStatus = PaymentStatus.EXPIRED;
+              }
+              break;
+          }
+
+          if (newStatus !== payment.status) {
+            await this.paymentModel.findByIdAndUpdate(payment._id, {
+              status: newStatus,
+              updatedAt: now,
+            });
+
+            if (newStatus === PaymentStatus.PAID) {
+              await this.usersService.updateUser(payment.userId, {
+                lastBillingDate: now,
+                nextBillingDate: addDays(now, 30),
+              });
+
+              const user = await this.usersService.findById(payment.userId);
+              if (user) {
+                await this.resendService.sendPaymentConfirmation(
+                  user.email,
+                  user.firstName,
+                  payment.amount,
+                );
+              }
+            }
+
+            if (newStatus === PaymentStatus.EXPIRED || newStatus === PaymentStatus.CANCELED) {
+              const user = await this.usersService.findById(payment.userId);
+              if (user) {
+                await this.resendService.sendPaymentFailureNotification(
+                  user.email,
+                  user.firstName,
+                  payment.amount,
+                  newStatus,
+                );
+              }
+            }
+
+            this.logger.log(
+              `Pagamento ${payment._id} atualizado: ${payment.status} -> ${newStatus}`,
+            );
+          }
+        } catch (error) {
+          this.logger.error(
+            `Erro ao processar pagamento ${payment._id}:`,
+            error,
+          );
+        }
+      }
+
+      this.logger.log('Verificação de pagamentos pendentes finalizada');
+    } catch (error) {
+      this.logger.error('Erro na verificação de pagamentos pendentes:', error);
     }
   }
 }

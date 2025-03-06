@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Court, CourtSchema } from './entities/court.entity';
 import { ImageKitModule } from '../common/imagekit/imagekit.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
     MongooseModule.forFeature([{ name: Court.name, schema: CourtSchema }]),
     forwardRef(() => SubscriptionsModule),
   ],
-  providers: [CourtService],
+  providers: [CourtService, LokiLoggerService],
   controllers: [CourtController],
   exports: [CourtService],
 })

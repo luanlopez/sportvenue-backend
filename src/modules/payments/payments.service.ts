@@ -23,7 +23,7 @@ export class PaymentsService {
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
   ) {
     this.stripe = new Stripe(configService.get('STRIPE_SECRET_KEY'), {
-      apiVersion: '2024-12-18.acacia',
+      apiVersion: '2025-02-24.acacia',
     });
   }
 
@@ -76,14 +76,14 @@ export class PaymentsService {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
           await this.updatePaymentStatus(
             paymentIntent.id,
-            PaymentStatus.COMPLETED,
+            PaymentStatus.PAID,
           );
           break;
         case 'payment_intent.payment_failed':
           const failedPayment = event.data.object as Stripe.PaymentIntent;
           await this.updatePaymentStatus(
             failedPayment.id,
-            PaymentStatus.FAILED,
+            PaymentStatus.EXPIRED,
           );
           break;
       }

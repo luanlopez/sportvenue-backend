@@ -3,6 +3,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserType } from '../../../src/schema/user.schema';
 import { PreRegisterDTO } from './dtos/pre-register.dto';
+import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -18,7 +19,17 @@ describe('AuthController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: authServiceMock }],
+      providers: [
+        { provide: AuthService, useValue: authServiceMock },
+        {
+          provide: LokiLoggerService,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);

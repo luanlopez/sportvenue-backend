@@ -11,6 +11,7 @@ import { GetCourtsResponseDTO } from './dtos/list-courts.dto';
 import { BadRequestException } from '@nestjs/common';
 import { CourtAmenities } from './enums/court-amenities.enum';
 import { CourtCategories } from './enums/court-categories.enum';
+import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 describe('CourtController', () => {
   let courtController: CourtController;
@@ -32,6 +33,14 @@ describe('CourtController', () => {
             deleteCourt: jest.fn(),
             deactivateCourt: jest.fn(),
             activateCourt: jest.fn(),
+          },
+        },
+        {
+          provide: LokiLoggerService,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
           },
         },
       ],

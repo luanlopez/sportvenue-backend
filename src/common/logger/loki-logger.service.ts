@@ -1,4 +1,7 @@
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 
 const SERVICE_NAME = 'sportmap-backend';
 
@@ -6,6 +9,7 @@ interface LokiLogLabels {
   Language: string;
   source: string;
   service: typeof SERVICE_NAME;
+  traceId: string;
   endpoint?: string;
   method?: string;
   userId?: string;
@@ -14,6 +18,7 @@ interface LokiLogLabels {
   courtData?: any;
   totalCourts?: number;
   returnedCourts?: number;
+  body?: any;
   [key: string]: any;
 }
 
@@ -24,18 +29,22 @@ interface LokiLogEntry {
   }[];
 }
 
-class LokiLogger {
+@Injectable()
+export class LokiLoggerService {
   private readonly host: string;
   private readonly token: string;
   private readonly user: string;
+  private readonly isConfigured: boolean;
+  private currentTraceId: string | null = null;
 
-  constructor() {
+  constructor(private configService: ConfigService) {
     this.host = 'https://logs-prod-024.grafana.net/loki/api/v1/push';
-    this.token = process.env.GRAFANA_LOKI_TOKEN;
-    this.user = process.env.GRAFANA_LOKI_USER;
+    this.token = this.configService.get<string>('GRAFANA_LOKI_TOKEN') || '';
+    this.user = this.configService.get<string>('GRAFANA_LOKI_USER') || '';
+    this.isConfigured = Boolean(this.token && this.user);
 
-    if (!this.token || !this.user) {
-      console.error('Loki credentials not found in environment variables');
+    if (!this.isConfigured) {
+      console.warn('LokiLogger: Missing credentials in environment variables');
     }
   }
 
@@ -43,10 +52,30 @@ class LokiLogger {
     return (Math.floor(Date.now() / 1000) * 1000000000).toString();
   }
 
+  private getTraceId(): string {
+    if (!this.currentTraceId) {
+      this.currentTraceId = uuidv4();
+    }
+    return this.currentTraceId;
+  }
+
+  startNewTrace(): string {
+    this.currentTraceId = uuidv4();
+    return this.currentTraceId;
+  }
+
+  setTraceId(traceId: string) {
+    this.currentTraceId = traceId;
+  }
+
   private async sendToLoki(
     message: string,
     labels: Partial<LokiLogLabels> = {},
   ) {
+    if (!this.isConfigured) {
+      return;
+    }
+
     const payload: LokiLogEntry = {
       streams: [
         {
@@ -54,6 +83,7 @@ class LokiLogger {
             Language: 'NodeJS',
             source: 'Code',
             service: SERVICE_NAME,
+            traceId: this.getTraceId(),
             ...labels,
           },
           values: [[this.formatTimestamp(), message]],
@@ -94,5 +124,3 @@ class LokiLogger {
     }
   }
 }
-
-export const lokiLogger = new LokiLogger();

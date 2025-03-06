@@ -3,12 +3,14 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ErrorInterceptor } from './common/interceptors/error.interceptor';
 import { ApiMessages } from './common/messages/api-messages';
-import { lokiLogger } from './common/logger/loki-logger';
+import { LokiLoggerService } from './common/logger/loki-logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  await lokiLogger.info('Application starting');
+  const logger = app.get(LokiLoggerService);
+
+  await logger.info('Application starting');
 
   app.useGlobalFilters(new ErrorInterceptor());
   app.enableCors();
@@ -22,11 +24,11 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT || 3000);
-  await lokiLogger.info(
+  await logger.info(
     `Application started successfully on ports: ${process.env.PORT || 3000}`,
   );
 }
 
 bootstrap().catch(async (error) => {
-  await lokiLogger.error('Application failed to start', error);
+  console.error('Application failed to start', error);
 });
