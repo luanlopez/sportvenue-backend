@@ -192,7 +192,7 @@ export class PaymentsCronService {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_6_HOURS)
   async checkPendingPayments() {
     this.logger.log('Iniciando verificação de pagamentos pendentes');
 
