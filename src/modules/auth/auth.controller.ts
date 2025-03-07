@@ -7,6 +7,7 @@ import {
   Request,
   Req,
   Patch,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -19,6 +20,7 @@ import { UpdateUserTypeDTO } from './dtos/update-user-type.dto';
 import { User } from './user.decorator';
 import { UserInterface } from './strategies/interfaces/user.interface';
 import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
+import { DecryptInterceptor } from '../../common/interceptors/decrypt.interceptor';
 
 @Controller('auth')
 export class AuthController {
@@ -28,6 +30,7 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @UseInterceptors(DecryptInterceptor)
   @ApiOperation({ summary: 'Login and obtain a JWT token' })
   @ApiBody({
     description: 'User login data',
@@ -55,23 +58,24 @@ export class AuthController {
     status: 401,
     description: 'Unauthorized. Invalid credentials.',
   })
-  async login(
-    @Body() { email, password }: { email: string; password: string },
-  ) {
+  async login(@Body() loginDto: { email: string; password: string }) {
     await this.lokiLogger.info('Login attempt', {
       endpoint: '/auth/login',
       method: 'POST',
-      email,
+      email: loginDto.email,
     });
 
     try {
-      const user = await this.authService.validateUser(email, password);
+      const user = await this.authService.validateUser(
+        loginDto.email,
+        loginDto.password,
+      );
       const result = await this.authService.login(user);
 
       await this.lokiLogger.info('Login successful', {
         endpoint: '/auth/login',
         method: 'POST',
-        email,
+        email: loginDto.email,
         userId: user.id,
       });
 
@@ -80,7 +84,7 @@ export class AuthController {
       await this.lokiLogger.error('Login failed', error, {
         endpoint: '/auth/login',
         method: 'POST',
-        email,
+        email: loginDto.email,
       });
       throw error;
     }
@@ -164,6 +168,7 @@ export class AuthController {
   }
 
   @Post('pre-register')
+  @UseInterceptors(DecryptInterceptor)
   @ApiOperation({ summary: 'Start registration process' })
   @ApiResponse({ status: 201, description: 'Verification code sent' })
   async preRegister(@Body() preRegisterDto: PreRegisterDTO) {

@@ -6,18 +6,18 @@ export const getVerificationTemplate = (name: string, code: string) => `
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificação SportVenue</title>
+    <title>Verificação SportMap</title>
     <style>${emailStyles}</style>
   </head>
   <body>
     <div class="container">
       <div class="header">
-        <div class="logo">SportVenue</div>
+        <div class="logo">SportMap</div>
       </div>
       <div class="content">
         <h2>Olá, ${name}!</h2>
         <p class="message">
-          Bem-vindo ao SportVenue! Para completar seu cadastro, 
+          Bem-vindo ao SportMap! Para completar seu cadastro, 
           use o código de verificação abaixo:
         </p>
         <div class="verification-code">
@@ -31,7 +31,7 @@ export const getVerificationTemplate = (name: string, code: string) => `
         </p>
       </div>
       <div class="footer">
-        <p>© ${new Date().getFullYear()} SportVenue. Todos os direitos reservados.</p>
+        <p>© ${new Date().getFullYear()} SportMap. Todos os direitos reservados.</p>
         <p>Este é um email automático, por favor não responda.</p>
       </div>
     </div>

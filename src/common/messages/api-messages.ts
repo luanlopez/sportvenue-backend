@@ -84,7 +84,7 @@ export const ApiMessages = {
   },
 
   Documentation: {
-    ApiTitle: 'SportVenue API',
+    ApiTitle: 'SportMap API',
     ApiDescription:
       'API for managing and locating sports venues. Allows users to view, search, and book sports courts, including detailed information about each venue such as address, available hours, and operational status.',
     ApiVersion: '1.0',

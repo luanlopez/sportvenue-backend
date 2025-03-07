@@ -34,54 +34,64 @@ export class PaymentsCronService {
     });
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_6_HOURS)
   async checkUsersAndGenerateBoletos() {
-    this.logger.log('Iniciando verificação diária de usuários e cobranças');
+    this.logger.log('Starting hourly check for users requiring payment slips');
 
     try {
       const usersEndingTrial = await this.usersService.getUsersEndingTrial();
+      this.logger.log(
+        `Found ${usersEndingTrial.length} users ending trial period`,
+      );
       await this.generateBoletosForUsers(usersEndingTrial);
 
       const usersForRegularBilling =
         await this.usersService.getUsersForRegularBilling();
+      this.logger.log(
+        `Found ${usersForRegularBilling.length} users needing regular billing`,
+      );
       await this.generateBoletosForUsers(usersForRegularBilling);
 
-      this.logger.log('Verificação diária finalizada');
+      this.logger.log('Hourly check completed successfully');
     } catch (error) {
-      this.logger.error('Erro na verificação diária:', error);
+      this.logger.error('Error during hourly check:', error);
     }
   }
 
   private async generateBoletosForUsers(users: User[]) {
+    this.logger.log(
+      `Starting payment slip generation for ${users.length} users`,
+    );
+
     for (const user of users) {
       try {
         const pendingPaymentSlip = await this.paymentModel.findOne({
-          userId: user.id,
+          userId: user._id.toString(),
           status: PaymentStatus.PENDING,
           paymentMethod: PaymentMethod.BOLETO,
         });
 
         if (pendingPaymentSlip) {
           this.logger.log(
-            `Usuário ${user.id} já possui um boleto pendente. Pulando geração.`,
+            `Skipping user ${user._id.toString()}: already has pending payment slip`,
           );
           continue;
         }
 
         if (!user.document) {
           this.logger.error(
-            `Usuário ${user.id} não possui CPF/CNPJ cadastrado. Pulando geração.`,
+            `Skipping user ${user._id.toString()}: missing CPF/CNPJ`,
           );
           continue;
         }
 
-        const dueDate = addDays(new Date(), 7);
-
-        const userCourt = await this.courtService.findOneByOwnerId(user.id);
+        const userCourt = await this.courtService.findOneByOwnerId(
+          user._id.toString(),
+        );
 
         if (!userCourt) {
           this.logger.error(
-            `Usuário ${user.id} não possui quadra cadastrada. Pulando geração.`,
+            `Skipping user ${user._id.toString()}: no registered court found`,
           );
           continue;
         }
@@ -90,15 +100,19 @@ export class PaymentsCronService {
           String(user?.subscriptionId),
         );
 
+        if (!subscriptionPlan) {
+          this.logger.error(
+            `Skipping user ${user._id.toString()}: no subscription plan found`,
+          );
+          continue;
+        }
+
+        const dueDate = addDays(new Date(), 7);
+
         const paymentIntent = await this.stripe.paymentIntents.create({
-          amount: subscriptionPlan.price / 100,
+          amount: subscriptionPlan.price,
           currency: 'brl',
           payment_method_types: ['boleto'],
-          payment_method_options: {
-            boleto: {
-              expires_after_days: 7,
-            },
-          },
           payment_method_data: {
             type: 'boleto',
             billing_details: {
@@ -118,21 +132,38 @@ export class PaymentsCronService {
             },
           },
           metadata: {
-            userId: user.id,
+            userId: user._id.toString(),
             type: 'SUBSCRIPTION',
           },
         });
 
+        const confirmedIntent = await this.stripe.paymentIntents.confirm(
+          paymentIntent.id,
+          {
+            payment_method_options: {
+              boleto: {
+                expires_after_days: 7,
+              },
+            },
+          },
+        );
+
+        if (!confirmedIntent.next_action?.boleto_display_details) {
+          throw new Error('Failed to generate boleto details');
+        }
+
         const payment = await this.paymentModel.create({
-          amount: subscriptionPlan.price / 100,
-          userId: user.id,
+          amount: subscriptionPlan.price,
+          userId: user._id.toString(),
           stripePaymentIntentId: paymentIntent.id,
           status: PaymentStatus.PENDING,
           paymentMethod: PaymentMethod.BOLETO,
           boletoUrl:
-            paymentIntent.next_action?.boleto_display_details
-              ?.hosted_voucher_url,
-          boletoPdf: paymentIntent.next_action?.boleto_display_details?.pdf,
+            confirmedIntent.next_action.boleto_display_details
+              .hosted_voucher_url,
+          boletoPdf: confirmedIntent.next_action.boleto_display_details.pdf,
+          boletoBarCode:
+            confirmedIntent.next_action.boleto_display_details.number,
           boletoExpirationDate: dueDate,
         });
 
@@ -144,22 +175,24 @@ export class PaymentsCronService {
           payment.boletoUrl,
         );
 
-        await this.usersService.updateUser(user.id, {
+        await this.usersService.updateUser(user._id.toString(), {
           lastBillingDate: new Date(),
           nextBillingDate: addDays(new Date(), 30),
         });
 
-        this.logger.log(`Boleto gerado para proprietário ${user.id}`);
+        this.logger.log(
+          `Payment slip generated successfully for user ${user._id.toString()}`,
+        );
       } catch (error) {
         this.logger.error(
-          `Erro ao gerar boleto para usuário ${user.id}:`,
+          `Error generating payment slip for user ${user._id.toString()}:`,
           error,
         );
       }
     }
   }
 
-  @Cron('0 */6 * * *')
+  @Cron(CronExpression.EVERY_10_SECONDS)
   async checkPendingPayments() {
     this.logger.log('Iniciando verificação de pagamentos pendentes');
 
@@ -169,7 +202,9 @@ export class PaymentsCronService {
         paymentMethod: PaymentMethod.BOLETO,
       });
 
-      this.logger.log(`Encontrados ${pendingPayments.length} pagamentos pendentes`);
+      this.logger.log(
+        `Encontrados ${pendingPayments.length} pagamentos pendentes`,
+      );
 
       for (const payment of pendingPayments) {
         try {
@@ -188,7 +223,10 @@ export class PaymentsCronService {
               newStatus = PaymentStatus.CANCELED;
               break;
             case 'requires_payment_method':
-              if (payment.boletoExpirationDate && payment.boletoExpirationDate < now) {
+              if (
+                payment.boletoExpirationDate &&
+                payment.boletoExpirationDate < now
+              ) {
                 newStatus = PaymentStatus.EXPIRED;
               }
               break;
@@ -216,7 +254,10 @@ export class PaymentsCronService {
               }
             }
 
-            if (newStatus === PaymentStatus.EXPIRED || newStatus === PaymentStatus.CANCELED) {
+            if (
+              newStatus === PaymentStatus.EXPIRED ||
+              newStatus === PaymentStatus.CANCELED
+            ) {
               const user = await this.usersService.findById(payment.userId);
               if (user) {
                 await this.resendService.sendPaymentFailureNotification(

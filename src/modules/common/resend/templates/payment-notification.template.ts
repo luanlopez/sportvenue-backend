@@ -17,7 +17,7 @@ export const getPaymentNotificationTemplate = (
     <div class="container">
       <h1>Olá, ${name}!</h1>
       
-      <p>Um novo boleto foi gerado para sua assinatura na SportVenue.</p>
+      <p>Um novo boleto foi gerado para sua assinatura na SportMap.</p>
       
       <div class="details">
         <p><strong>Valor:</strong> R$ ${amount.toFixed(2)}</p>

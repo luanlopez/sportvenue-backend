@@ -14,13 +14,13 @@ export const getReservationCancellationTemplate = (
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cancelamento de Reserva - SportVenue</title>
+    <title>Cancelamento de Reserva - SportMap</title>
     <style>${emailStyles}</style>
   </head>
   <body>
     <div class="container">
       <div class="header">
-        <div class="logo">SportVenue</div>
+        <div class="logo">SportMap</div>
       </div>
       <div class="content">
         <h2>Cancelamento de Reserva</h2>
@@ -35,7 +35,7 @@ export const getReservationCancellationTemplate = (
         </div>
       </div>
       <div class="footer">
-        <p>© ${new Date().getFullYear()} SportVenue. Todos os direitos reservados.</p>
+        <p>© ${new Date().getFullYear()} SportMap. Todos os direitos reservados.</p>
         <p>Este é um email automático, por favor não responda.</p>
       </div>
     </div>

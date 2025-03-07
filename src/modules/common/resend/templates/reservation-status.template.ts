@@ -22,13 +22,13 @@ export const getReservationStatusTemplate = (
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atualização da Reserva - SportVenue</title>
+    <title>Atualização da Reserva - SportMap</title>
     <style>${emailStyles}</style>
   </head>
   <body>
     <div class="container">
       <div class="header">
-        <div class="logo">SportVenue</div>
+        <div class="logo">SportMap</div>
       </div>
       <div class="content">
         <h2>Sua Reserva foi ${status === 'approved' ? 'Aprovada!' : 'Rejeitada'}</h2>
@@ -55,7 +55,7 @@ export const getReservationStatusTemplate = (
         }
       </div>
       <div class="footer">
-        <p>© ${new Date().getFullYear()} SportVenue. Todos os direitos reservados.</p>
+        <p>© ${new Date().getFullYear()} SportMap. Todos os direitos reservados.</p>
         <p>Este é um email automático, por favor não responda.</p>
       </div>
     </div>
