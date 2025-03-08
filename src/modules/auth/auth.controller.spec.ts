@@ -3,13 +3,32 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserType } from '../../../src/schema/user.schema';
 import { PreRegisterDTO } from './dtos/pre-register.dto';
+import { ConfigService } from '@nestjs/config';
 import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
+import { DecryptInterceptor } from '../../common/interceptors/decrypt.interceptor';
 
 describe('AuthController', () => {
   let controller: AuthController;
   let authServiceMock: any;
+  let configServiceMock: any;
+  let loggerServiceMock: any;
 
   beforeEach(async () => {
+    configServiceMock = {
+      get: jest.fn((key: string) => {
+        if (key === 'CRYPTO_SECRET_KEY') {
+          return 'test-secret-key';
+        }
+        return null;
+      }),
+    };
+
+    loggerServiceMock = {
+      info: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    };
+
     authServiceMock = {
       register: jest.fn(),
       validateUser: jest.fn(),
@@ -21,14 +40,9 @@ describe('AuthController', () => {
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: authServiceMock },
-        {
-          provide: LokiLoggerService,
-          useValue: {
-            info: jest.fn(),
-            error: jest.fn(),
-            debug: jest.fn(),
-          },
-        },
+        { provide: ConfigService, useValue: configServiceMock },
+        { provide: LokiLoggerService, useValue: loggerServiceMock },
+        DecryptInterceptor,
       ],
     }).compile();
 
@@ -50,32 +64,76 @@ describe('AuthController', () => {
         userType: UserType.HOUSE_OWNER,
       };
 
-      authServiceMock.preRegister.mockResolvedValue(undefined);
+      authServiceMock.preRegister.mockResolvedValue({ message: 'Código de verificação enviado para o email' });
 
       const result = await controller.preRegister(userData);
 
-      expect(result).toEqual(undefined);
+      expect(result).toEqual({ message: 'Código de verificação enviado para o email' });
+      expect(authServiceMock.preRegister).toHaveBeenCalledWith(userData);
+      expect(loggerServiceMock.info).toHaveBeenCalled();
     });
   });
 
   describe('login', () => {
     it('should return JWT token when valid credentials are provided', async () => {
-      const email = 'john.doe@example.com';
-      const password = 'password123';
-      const user = { id: '1', email, firstName: 'John', lastName: 'Doe' };
-      const mockToken = { accessToken: 'mock_token' };
+      const loginData = {
+        email: 'john.doe@example.com',
+        password: 'password123',
+      };
+
+      const user = { 
+        id: '1', 
+        email: loginData.email, 
+        firstName: 'John', 
+        lastName: 'Doe',
+        userType: UserType.HOUSE_OWNER,
+      };
+
+      const mockToken = { 
+        accessToken: 'mock_token',
+        refreshToken: 'mock_refresh_token',
+      };
 
       authServiceMock.validateUser.mockResolvedValue(user);
       authServiceMock.login.mockResolvedValue(mockToken);
 
-      const result = await controller.login({ email, password });
+      const result = await controller.login(loginData);
 
       expect(result).toEqual(mockToken);
       expect(authServiceMock.validateUser).toHaveBeenCalledWith(
-        email,
-        password,
+        loginData.email,
+        loginData.password,
       );
       expect(authServiceMock.login).toHaveBeenCalledWith(user);
+      expect(loggerServiceMock.info).toHaveBeenCalled();
     });
+
+    // it('should handle encrypted login data', async () => {
+    //   const user = { 
+    //     id: '1', 
+    //     email: 'john.doe@example.com', 
+    //     firstName: 'John', 
+    //     lastName: 'Doe',
+    //     userType: UserType.HOUSE_OWNER,
+    //   };
+
+    //   const mockToken = { 
+    //     accessToken: 'mock_token',
+    //     refreshToken: 'mock_refresh_token',
+    //   };
+
+    //   authServiceMock.validateUser.mockResolvedValue(user);
+    //   authServiceMock.login.mockResolvedValue(mockToken);
+
+    //   // Simula dados criptografados
+    //   const encryptedRequest: { encryptedData?: string; email?: string; password?: string } = {
+    //     encryptedData: 'encrypted-data-mock'
+    //   };
+
+    //   const result = await controller.login(encryptedRequest);
+
+    //   expect(result).toEqual(mockToken);
+    //   expect(loggerServiceMock.info).toHaveBeenCalled();
+    // });
   });
 });
