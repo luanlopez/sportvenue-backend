@@ -19,7 +19,5 @@ COPY --from=builder /app .
 RUN npm install
 
 ENV NODE_ENV=production
-ENV GRAFANA_LOKI_TOKEN=${GRAFANA_LOKI_TOKEN}
-ENV GRAFANA_LOKI_USER=${GRAFANA_LOKI_USER}
 
 CMD ["npm", "run", "start:prod"]
