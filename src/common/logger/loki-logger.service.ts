@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
-const SERVICE_NAME = 'sportmap-backend';
+const SERVICE_NAME = 'sportmap-backend-production';
 
 interface LokiLogLabels {
   Language: string;
