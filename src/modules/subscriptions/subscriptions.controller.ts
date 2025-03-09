@@ -153,7 +153,10 @@ export class SubscriptionsController {
     });
 
     try {
-      const result = await this.subscriptionsService.updatePlan(id, updatePlanDto);
+      const result = await this.subscriptionsService.updatePlan(
+        id,
+        updatePlanDto,
+      );
 
       await this.lokiLogger.info('Subscription plan updated successfully', {
         endpoint: '/subscriptions/plans/:id',
@@ -203,12 +206,16 @@ export class SubscriptionsController {
 
       return result;
     } catch (error) {
-      await this.lokiLogger.error('Failed to deactivate subscription plan', error, {
-        endpoint: '/subscriptions/plans/:id',
-        method: 'DELETE',
-        userId: user.id,
-        planId: id,
-      });
+      await this.lokiLogger.error(
+        'Failed to deactivate subscription plan',
+        error,
+        {
+          endpoint: '/subscriptions/plans/:id',
+          method: 'DELETE',
+          userId: user.id,
+          planId: id,
+        },
+      );
       throw error;
     }
   }
