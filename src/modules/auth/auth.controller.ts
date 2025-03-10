@@ -190,7 +190,6 @@ export class AuthController {
 
       return result;
     } catch (error) {
-      
       await this.lokiLogger.error('Pre-registration failed', error, {
         endpoint: '/auth/pre-register',
         method: 'POST',
