@@ -14,7 +14,7 @@ import * as CryptoJS from 'crypto-js';
 export class DecryptInterceptor implements NestInterceptor {
   private readonly logger = new Logger(DecryptInterceptor.name);
 
-  constructor(private configService: ConfigService) { }
+  constructor(private configService: ConfigService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
@@ -48,7 +48,7 @@ export class DecryptInterceptor implements NestInterceptor {
 
       const maskedKey =
         secretKey.length > 4
-          ? `${secretKey.substring(0, 2)}***${secretKey.substring(secretKey.length - 2)}`
+          ? `${secretKey.substring(0, 4)}***${secretKey.substring(secretKey.length - 2)}`
           : '***';
 
       this.logger.debug('Attempting to decrypt data', {
@@ -56,10 +56,35 @@ export class DecryptInterceptor implements NestInterceptor {
         method,
         secretKey: maskedKey,
         encryptedDataLength: body.encryptedData.length,
+        encryptedData: body.encryptedData,
       });
 
-      const bytes = CryptoJS.AES.decrypt(body.encryptedData, secretKey);
-      const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+      let bytes;
+      try {
+        bytes = CryptoJS.AES.decrypt(body.encryptedData, secretKey);
+        this.logger.debug('Decryption step completed', {
+          bytesLength: bytes.toString().length,
+        });
+      } catch (decryptError) {
+        this.logger.error('Failed at decryption step', {
+          error: decryptError.message,
+        });
+        throw new Error('Failed to decrypt data');
+      }
+
+      let decryptedData;
+      try {
+        decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+        this.logger.debug('String conversion completed', {
+          decryptedLength: decryptedData.length,
+          decryptedSample: decryptedData.substring(0, 50),
+        });
+      } catch (conversionError) {
+        this.logger.error('Failed at UTF8 conversion', {
+          error: conversionError.message,
+        });
+        throw new Error('Failed to convert decrypted data to string');
+      }
 
       if (!decryptedData) {
         this.logger.error('Decryption resulted in empty data', {
@@ -72,12 +97,15 @@ export class DecryptInterceptor implements NestInterceptor {
 
       try {
         request.body = JSON.parse(decryptedData);
-        this.logger.debug('Data successfully decrypted and parsed');
+        this.logger.debug('Data successfully decrypted and parsed', {
+          bodyKeys: Object.keys(request.body),
+        });
       } catch (parseError) {
         this.logger.error('Failed to parse decrypted data as JSON', {
           path,
           method,
-          decryptedData: decryptedData.substring(0, 100),
+          decryptedData,
+          decryptedLength: decryptedData.length,
           error: parseError.message,
         });
         throw new Error('Invalid JSON in decrypted data');
