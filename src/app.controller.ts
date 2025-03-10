@@ -34,7 +34,7 @@ export class AppController {
     @InjectConnection() private readonly mongoConnection: Connection,
   ) {}
 
-  @Get('healthz')
+  @Get('')
   @ApiOperation({ summary: 'Check API and MongoDB health status' })
   @ApiResponse({
     status: 200,
