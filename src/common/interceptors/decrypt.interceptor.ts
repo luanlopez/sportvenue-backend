@@ -46,22 +46,19 @@ export class DecryptInterceptor implements NestInterceptor {
         throw new Error('Encryption key not configured');
       }
 
-      const maskedKey =
-        secretKey.length > 4
-          ? `${secretKey.substring(0, 4)}***${secretKey.substring(secretKey.length - 2)}`
-          : '***';
+      const normalizedKey = secretKey.replace(/[^a-zA-Z0-9]/g, '');
 
       this.logger.debug('Attempting to decrypt data', {
         path,
         method,
-        secretKey: maskedKey,
+        secretKey: normalizedKey,
         encryptedDataLength: body.encryptedData.length,
         encryptedData: body.encryptedData,
       });
 
       let bytes;
       try {
-        bytes = CryptoJS.AES.decrypt(body.encryptedData, secretKey);
+        bytes = CryptoJS.AES.decrypt(body.encryptedData, normalizedKey);
         this.logger.debug('Decryption step completed', {
           bytesLength: bytes.toString().length,
         });
