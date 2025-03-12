@@ -127,5 +127,9 @@ export const ApiMessages = {
       title: 'Falha no Upgrade',
       message: 'Não foi possível realizar o upgrade do plano',
     },
+    InternalError: {
+      title: 'Erro Interno',
+      message: 'Ocorreu um erro interno no servidor',
+    },
   },
 } as const;

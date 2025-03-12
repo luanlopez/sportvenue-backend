@@ -8,15 +8,11 @@ import {
   Put,
   Delete,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiHeader } from '@nestjs/swagger';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionPlanDTO } from './dtos/create-subscription-plan.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { MasterGuard } from '../auth/master.guard';
 import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
-import { User } from '../auth/user.decorator';
-import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 
 @ApiTags('Subscriptions')
 @Controller('subscriptions')
@@ -27,32 +23,36 @@ export class SubscriptionsController {
   ) {}
 
   @Post('plans')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HOUSE_OWNER')
-  @ApiOperation({ summary: 'Criar novo plano de assinatura' })
+  @UseGuards(MasterGuard)
+  @ApiOperation({
+    summary: 'Criar novo plano de assinatura (requer master key)',
+  })
+  @ApiHeader({
+    name: 'x-master-key',
+    description: 'Chave de acesso master para gerenciamento de planos',
+    required: true,
+  })
   @ApiResponse({
     status: 201,
     description: 'Plano criado com sucesso',
   })
-  async createPlan(
-    @Body() createPlanDto: CreateSubscriptionPlanDTO,
-    @User() user: UserInterface,
-  ) {
+  @ApiResponse({
+    status: 403,
+    description: 'Acesso negado - Master key inválida ou não fornecida',
+  })
+  async createPlan(@Body() createPlanDto: CreateSubscriptionPlanDTO) {
     await this.lokiLogger.info('Creating new subscription plan', {
       endpoint: '/subscriptions/plans',
       method: 'POST',
-      userId: user.id,
       body: JSON.stringify(createPlanDto),
     });
 
     try {
       const result = await this.subscriptionsService.createPlan(createPlanDto);
-
       await this.lokiLogger.info('Subscription plan created successfully', {
         endpoint: '/subscriptions/plans',
         method: 'POST',
-        userId: user.id,
-        planId: result.id,
+        planId: result._id,
       });
 
       return result;
@@ -60,7 +60,6 @@ export class SubscriptionsController {
       await this.lokiLogger.error('Failed to create subscription plan', error, {
         endpoint: '/subscriptions/plans',
         method: 'POST',
-        userId: user.id,
         body: JSON.stringify(createPlanDto),
       });
       throw error;
@@ -132,22 +131,28 @@ export class SubscriptionsController {
   }
 
   @Put('plans/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HOUSE_OWNER')
-  @ApiOperation({ summary: 'Atualizar plano' })
+  @UseGuards(MasterGuard)
+  @ApiOperation({ summary: 'Atualizar plano (requer master key)' })
+  @ApiHeader({
+    name: 'x-master-key',
+    description: 'Chave de acesso master para gerenciamento de planos',
+    required: true,
+  })
   @ApiResponse({
     status: 200,
     description: 'Plano atualizado com sucesso',
   })
+  @ApiResponse({
+    status: 403,
+    description: 'Acesso negado - Master key inválida ou não fornecida',
+  })
   async updatePlan(
     @Param('id') id: string,
     @Body() updatePlanDto: CreateSubscriptionPlanDTO,
-    @User() user: UserInterface,
   ) {
     await this.lokiLogger.info('Updating subscription plan', {
       endpoint: '/subscriptions/plans/:id',
       method: 'PUT',
-      userId: user.id,
       planId: id,
       body: JSON.stringify(updatePlanDto),
     });
@@ -161,7 +166,6 @@ export class SubscriptionsController {
       await this.lokiLogger.info('Subscription plan updated successfully', {
         endpoint: '/subscriptions/plans/:id',
         method: 'PUT',
-        userId: user.id,
         planId: id,
       });
 
@@ -170,7 +174,6 @@ export class SubscriptionsController {
       await this.lokiLogger.error('Failed to update subscription plan', error, {
         endpoint: '/subscriptions/plans/:id',
         method: 'PUT',
-        userId: user.id,
         planId: id,
         body: JSON.stringify(updatePlanDto),
       });
@@ -179,18 +182,25 @@ export class SubscriptionsController {
   }
 
   @Delete('plans/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('HOUSE_OWNER')
-  @ApiOperation({ summary: 'Desativar plano' })
+  @UseGuards(MasterGuard)
+  @ApiOperation({ summary: 'Desativar plano (requer master key)' })
+  @ApiHeader({
+    name: 'x-master-key',
+    description: 'Chave de acesso master para gerenciamento de planos',
+    required: true,
+  })
   @ApiResponse({
     status: 200,
     description: 'Plano desativado com sucesso',
   })
-  async deactivatePlan(@Param('id') id: string, @User() user: UserInterface) {
+  @ApiResponse({
+    status: 403,
+    description: 'Acesso negado - Master key inválida ou não fornecida',
+  })
+  async deactivatePlan(@Param('id') id: string) {
     await this.lokiLogger.info('Deactivating subscription plan', {
       endpoint: '/subscriptions/plans/:id',
       method: 'DELETE',
-      userId: user.id,
       planId: id,
     });
 
@@ -200,7 +210,6 @@ export class SubscriptionsController {
       await this.lokiLogger.info('Subscription plan deactivated successfully', {
         endpoint: '/subscriptions/plans/:id',
         method: 'DELETE',
-        userId: user.id,
         planId: id,
       });
 
@@ -212,7 +221,6 @@ export class SubscriptionsController {
         {
           endpoint: '/subscriptions/plans/:id',
           method: 'DELETE',
-          userId: user.id,
           planId: id,
         },
       );
