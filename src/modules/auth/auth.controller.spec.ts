@@ -64,11 +64,15 @@ describe('AuthController', () => {
         userType: UserType.HOUSE_OWNER,
       };
 
-      authServiceMock.preRegister.mockResolvedValue({ message: 'Código de verificação enviado para o email' });
+      authServiceMock.preRegister.mockResolvedValue({
+        message: 'Código de verificação enviado para o email',
+      });
 
       const result = await controller.preRegister(userData);
 
-      expect(result).toEqual({ message: 'Código de verificação enviado para o email' });
+      expect(result).toEqual({
+        message: 'Código de verificação enviado para o email',
+      });
       expect(authServiceMock.preRegister).toHaveBeenCalledWith(userData);
       expect(loggerServiceMock.info).toHaveBeenCalled();
     });
@@ -81,15 +85,15 @@ describe('AuthController', () => {
         password: 'password123',
       };
 
-      const user = { 
-        id: '1', 
-        email: loginData.email, 
-        firstName: 'John', 
+      const user = {
+        id: '1',
+        email: loginData.email,
+        firstName: 'John',
         lastName: 'Doe',
         userType: UserType.HOUSE_OWNER,
       };
 
-      const mockToken = { 
+      const mockToken = {
         accessToken: 'mock_token',
         refreshToken: 'mock_refresh_token',
       };
@@ -107,33 +111,5 @@ describe('AuthController', () => {
       expect(authServiceMock.login).toHaveBeenCalledWith(user);
       expect(loggerServiceMock.info).toHaveBeenCalled();
     });
-
-    // it('should handle encrypted login data', async () => {
-    //   const user = { 
-    //     id: '1', 
-    //     email: 'john.doe@example.com', 
-    //     firstName: 'John', 
-    //     lastName: 'Doe',
-    //     userType: UserType.HOUSE_OWNER,
-    //   };
-
-    //   const mockToken = { 
-    //     accessToken: 'mock_token',
-    //     refreshToken: 'mock_refresh_token',
-    //   };
-
-    //   authServiceMock.validateUser.mockResolvedValue(user);
-    //   authServiceMock.login.mockResolvedValue(mockToken);
-
-    //   // Simula dados criptografados
-    //   const encryptedRequest: { encryptedData?: string; email?: string; password?: string } = {
-    //     encryptedData: 'encrypted-data-mock'
-    //   };
-
-    //   const result = await controller.login(encryptedRequest);
-
-    //   expect(result).toEqual(mockToken);
-    //   expect(loggerServiceMock.info).toHaveBeenCalled();
-    // });
   });
 });
