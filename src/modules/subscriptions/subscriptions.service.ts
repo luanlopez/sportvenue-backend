@@ -59,8 +59,17 @@ export class SubscriptionsService {
   }
 
   async createPlan(createPlanDto: CreateSubscriptionPlanDTO) {
-    const plan = await this.planModel.create(createPlanDto);
-    return plan;
+    try {
+      const plan = await this.planModel.create(createPlanDto);
+      return plan;
+    } catch (error) {
+      throw new CustomApiError(
+        ApiMessages.Subscription.InternalError.title,
+        ApiMessages.Subscription.InternalError.message,
+        ErrorCodes.SUBSCRIPTION_PLAN_CREATION_FAILED,
+        500,
+      );
+    }
   }
 
   async listPlans() {
