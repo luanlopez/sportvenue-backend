@@ -74,10 +74,7 @@ export class PaymentsService {
       switch (event.type) {
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          await this.updatePaymentStatus(
-            paymentIntent.id,
-            PaymentStatus.PAID,
-          );
+          await this.updatePaymentStatus(paymentIntent.id, PaymentStatus.PAID);
           break;
         case 'payment_intent.payment_failed':
           const failedPayment = event.data.object as Stripe.PaymentIntent;
