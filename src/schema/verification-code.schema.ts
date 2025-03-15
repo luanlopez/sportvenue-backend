@@ -3,9 +3,10 @@ import { Schema, Document } from 'mongoose';
 export interface VerificationCode extends Document {
   email: string;
   code: string;
+  type?: 'REGISTRATION' | 'RESET_PASSWORD';
   expiresAt: Date;
   isUsed: boolean;
-  userData: {
+  userData?: {
     firstName: string;
     lastName: string;
     userType: string;
@@ -28,6 +29,11 @@ export const VerificationCodeSchema = new Schema<VerificationCode>(
       type: String,
       required: true,
     },
+    type: {
+      type: String,
+      enum: ['REGISTRATION', 'RESET_PASSWORD'],
+      required: false,
+    },
     expiresAt: {
       type: Date,
       required: true,
@@ -37,18 +43,21 @@ export const VerificationCodeSchema = new Schema<VerificationCode>(
       default: false,
     },
     userData: {
-      firstName: String,
-      lastName: String,
-      userType: {
-        type: String,
-        required: false,
+      type: {
+        firstName: String,
+        lastName: String,
+        userType: {
+          type: String,
+          required: false,
+        },
+        phone: String,
+        password: String,
+        planID: {
+          type: String,
+          required: false,
+        },
       },
-      phone: String,
-      password: String,
-      planID: {
-        type: String,
-        required: false,
-      },
+      required: false,
     },
   },
   {

@@ -10,11 +10,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserProfileDto } from './dtos/user-profile.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { PreRegisterDTO } from './dtos/pre-register.dto';
 import { VerifyRegistrationDTO } from './dtos/verify-registration.dto';
+import { ForgotPasswordDTO } from './dtos/forgot-password.dto';
+import { ResetPasswordDTO } from './dtos/forgot-password.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { UpdateUserTypeDTO } from './dtos/update-user-type.dto';
 import { User } from './user.decorator';
@@ -22,6 +24,7 @@ import { UserInterface } from './strategies/interfaces/user.interface';
 import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 import { DecryptInterceptor } from '../../common/interceptors/decrypt.interceptor';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -344,6 +347,77 @@ export class AuthController {
         method: 'PATCH',
         userId: user.id,
         newUserType: updateUserTypeDto.userType,
+      });
+      throw error;
+    }
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Solicitar redefinição de senha' })
+  @ApiResponse({
+    status: 200,
+    description: 'Código de verificação enviado com sucesso',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuário não encontrado',
+  })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDTO) {
+    await this.lokiLogger.info('Password reset requested', {
+      endpoint: '/auth/forgot-password',
+      method: 'POST',
+      email: forgotPasswordDto.email,
+    });
+
+    try {
+      await this.authService.forgotPassword(forgotPasswordDto);
+
+      await this.lokiLogger.info('Password reset code sent successfully', {
+        endpoint: '/auth/forgot-password',
+        method: 'POST',
+        email: forgotPasswordDto.email,
+      });
+
+      return { message: 'Código de verificação enviado com sucesso' };
+    } catch (error) {
+      await this.lokiLogger.error('Failed to send password reset code', error, {
+        endpoint: '/auth/forgot-password',
+        method: 'POST',
+        email: forgotPasswordDto.email,
+      });
+      throw error;
+    }
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Redefinir senha com código de verificação' })
+  @ApiResponse({
+    status: 200,
+    description: 'Senha alterada com sucesso',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Código inválido ou expirado',
+  })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDTO) {
+    await this.lokiLogger.info('Password reset attempt', {
+      endpoint: '/auth/reset-password',
+      method: 'POST',
+    });
+
+    try {
+      await this.authService.resetPassword(resetPasswordDto);
+
+      await this.lokiLogger.info('Password reset successful', {
+        endpoint: '/auth/reset-password',
+        method: 'POST',
+      });
+
+      return { message: 'Senha alterada com sucesso' };
+    } catch (error) {
+      await this.lokiLogger.error('Failed to reset password', error, {
+        endpoint: '/auth/reset-password',
+        method: 'POST',
       });
       throw error;
     }

@@ -7,6 +7,9 @@ import { getReservationCancellationTemplate } from './templates/reservation-canc
 import { getPaymentNotificationTemplate } from './templates/payment-notification.template';
 import { ConfigService } from '@nestjs/config';
 import { PaymentStatus } from '../../../schema/payment.schema';
+import { getPasswordResetCodeTemplate } from './templates/password-reset.template';
+import { getPasswordResetConfirmationTemplate } from './templates/password-reset.template';
+import { emailStyles } from './templates/styles';
 
 @Injectable()
 export class ResendService {
@@ -147,9 +150,42 @@ export class ResendService {
       to: email,
       subject: 'Pagamento Confirmado - SportMap',
       html: `
-        <h1>Olá ${firstName}!</h1>
-        <p>Seu pagamento de R$ ${amount.toFixed(2)} foi confirmado com sucesso.</p>
-        <p>Obrigado por usar o SportMap!</p>
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              ${emailStyles}
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Olá, ${firstName}! 👋</h1>
+              </div>
+              
+              <div class="content">
+                <div class="message">
+                  Seu pagamento foi confirmado com sucesso!
+                </div>
+                
+                <div class="details">
+                  <strong>Valor:</strong> R$ ${(amount / 100).toFixed(2)}
+                </div>
+
+                <p class="note">
+                  Obrigado por usar o SportMap!
+                </p>
+              </div>
+
+              <div class="footer">
+                <p>Este é um e-mail automático, por favor não responda.</p>
+                <p>© ${new Date().getFullYear()} SportMap. Todos os direitos reservados.</p>
+              </div>
+            </div>
+          </body>
+        </html>
       `,
     });
   }
@@ -160,19 +196,76 @@ export class ResendService {
     amount: number,
     status: PaymentStatus,
   ) {
-    const statusMessage = status === PaymentStatus.EXPIRED
-      ? 'venceu'
-      : 'foi cancelado';
+    const statusMessage =
+      status === PaymentStatus.EXPIRED ? 'venceu' : 'foi cancelado';
 
     await this.resend.emails.send({
       from: 'SportMap <noreply@sportmap.com.br>',
       to: email,
       subject: `Pagamento ${status === PaymentStatus.EXPIRED ? 'Vencido' : 'Cancelado'} - SportMap`,
       html: `
-        <h1>Olá ${firstName}!</h1>
-        <p>Seu pagamento de R$ ${amount.toFixed(2)} ${statusMessage}.</p>
-        <p>Por favor, entre em contato conosco para regularizar sua situação.</p>
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              ${emailStyles}
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Olá, ${firstName}! 👋</h1>
+              </div>
+              
+              <div class="content">
+                <div class="message">
+                  Seu pagamento ${statusMessage}.
+                </div>
+                
+                <div class="details">
+                  <strong>Valor:</strong> R$ ${(amount / 100).toFixed(2)}
+                </div>
+
+                <div class="warning">
+                  <strong>Atenção:</strong> Por favor, entre em contato conosco para regularizar sua situação.
+                </div>
+              </div>
+
+              <div class="footer">
+                <p>Este é um e-mail automático, por favor não responda.</p>
+                <p>© ${new Date().getFullYear()} SportMap. Todos os direitos reservados.</p>
+              </div>
+            </div>
+          </body>
+        </html>
       `,
+    });
+  }
+
+  async sendPasswordResetCode(
+    email: string,
+    name: string,
+    code: string,
+  ): Promise<void> {
+    await this.resend.emails.send({
+      from: 'SportMap <noreply@sportmap.com.br>',
+      to: email,
+      subject: 'Redefinição de Senha - SportMap',
+      html: getPasswordResetCodeTemplate(name, code),
+    });
+  }
+
+  async sendPasswordResetConfirmation(
+    email: string,
+    name: string,
+  ): Promise<void> {
+    await this.resend.emails.send({
+      from: 'SportMap <noreply@sportmap.com.br>',
+      to: email,
+      subject: 'Senha Alterada com Sucesso - SportMap',
+      html: getPasswordResetConfirmationTemplate(name),
     });
   }
 }

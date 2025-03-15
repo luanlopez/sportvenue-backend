@@ -1,6 +1,6 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User } from 'src/schema/user.schema';
 import {
   CreateUserDTOInput,
@@ -102,11 +102,9 @@ export class UsersService {
   }
 
   async updateUser(id: string, userData: Partial<User>): Promise<User> {
-    const updatedUser = await this.userModel
-      .findByIdAndUpdate(id, userData, { new: true, runValidators: true })
-      .exec();
+    const user = await this.userModel.findById(new Types.ObjectId(id));
 
-    if (!updatedUser) {
+    if (!user) {
       throw new CustomApiError(
         ApiMessages.User.NotFound.title,
         ApiMessages.User.NotFound.message,
@@ -114,6 +112,16 @@ export class UsersService {
         404,
       );
     }
+
+    if (userData.password) {
+      userData.password = await this.cryptoCommon.encryptPassword(
+        userData.password,
+      );
+    }
+
+    Object.assign(user, userData);
+
+    const updatedUser = await user.save();
     return updatedUser;
   }
 

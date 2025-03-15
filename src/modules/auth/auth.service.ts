@@ -6,6 +6,8 @@ import { jwtConfig } from './config/jwt.config';
 import { UserProfileDto } from './dtos/user-profile.dto';
 import { PreRegisterDTO } from './dtos/pre-register.dto';
 import { VerifyRegistrationDTO } from './dtos/verify-registration.dto';
+import { ForgotPasswordDTO } from './dtos/forgot-password.dto';
+import { ResetPasswordDTO } from './dtos/forgot-password.dto';
 import { Model } from 'mongoose';
 import { ResendService } from '../common/resend/resend.service';
 import { InjectModel } from '@nestjs/mongoose';
@@ -57,6 +59,7 @@ export class AuthService {
     const verificationCode = new this.verificationModel({
       email: preRegisterDto.email,
       code,
+      type: 'REGISTRATION',
       isUsed: false,
       userData: {
         firstName: preRegisterDto.firstName,
@@ -86,6 +89,7 @@ export class AuthService {
   ): Promise<{ accessToken: string }> {
     const verification = await this.verificationModel.findOne({
       code: verifyDto.code,
+      type: 'REGISTRATION',
       isUsed: false,
     });
 
@@ -312,7 +316,6 @@ export class AuthService {
 
   async updateUserType(userId: string, userType: UserType, document: string) {
     const user = await this.usersService.getUserByDocument(document);
-    console.log(user);
     if (user) {
       throw new CustomApiError(
         ApiMessages.Auth.DocumentExists.title,
@@ -325,5 +328,90 @@ export class AuthService {
       userType,
       document,
     });
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDTO): Promise<void> {
+    const user = await this.usersService.getUserByEmail(
+      forgotPasswordDto.email,
+    );
+
+    if (!user) {
+      throw new CustomApiError(
+        'Usuário não encontrado',
+        'Não encontramos um usuário com este email',
+        ErrorCodes.USER_NOT_FOUND,
+        404,
+      );
+    }
+
+    const code = Math.random().toString().slice(2, 8);
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    await this.verificationModel.create({
+      email: user.email,
+      code,
+      type: 'RESET_PASSWORD',
+      expiresAt,
+      isUsed: false,
+    });
+
+    await this.resendService.sendPasswordResetCode(
+      user.email,
+      user.firstName,
+      code,
+    );
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDTO): Promise<void> {
+    const verification = await this.verificationModel.findOne({
+      code: resetPasswordDto.code,
+      type: 'RESET_PASSWORD',
+      isUsed: false,
+    });
+
+    if (!verification) {
+      throw new CustomApiError(
+        'Código inválido',
+        'O código de verificação é inválido ou já foi utilizado',
+        ErrorCodes.INVALID_VERIFICATION_CODE,
+        400,
+      );
+    }
+
+    if (verification.expiresAt < new Date()) {
+      throw new CustomApiError(
+        'Código expirado',
+        'O código de verificação expirou',
+        ErrorCodes.VERIFICATION_CODE_EXPIRED,
+        400,
+      );
+    }
+
+    const user = await this.usersService.getUserByEmail(verification.email);
+    if (!user) {
+      throw new CustomApiError(
+        'Usuário não encontrado',
+        'Não encontramos um usuário com este email',
+        ErrorCodes.USER_NOT_FOUND,
+        404,
+      );
+    }
+    console.log(user, resetPasswordDto.newPassword);
+    const hashedPassword = this.cryptoService.encryptPassword(
+      resetPasswordDto.newPassword,
+    );
+
+    await this.usersService.updateUser(String(user._id), {
+      password: hashedPassword,
+    });
+
+    verification.isUsed = true;
+    await verification.save();
+
+    await this.resendService.sendPasswordResetConfirmation(
+      user.email,
+      user.firstName,
+    );
   }
 }
