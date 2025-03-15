@@ -62,6 +62,7 @@ describe('AuthController', () => {
         password: 'password',
         phone: '1199999999',
         userType: UserType.HOUSE_OWNER,
+        planID: '1',
       };
 
       authServiceMock.preRegister.mockResolvedValue({
