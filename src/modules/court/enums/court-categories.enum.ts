@@ -7,4 +7,6 @@ export enum CourtCategories {
   HANDBALL = 'HANDBALL',
   BEACH_VOLLEYBALL = 'BEACH_VOLLEYBALL',
   BEACH_TENNIS = 'BEACH_TENNIS',
+  RUGBY = 'RUGBY',
+  GOLF = 'GOLF',
 }

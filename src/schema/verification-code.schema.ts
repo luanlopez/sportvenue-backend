@@ -11,6 +11,7 @@ export interface VerificationCode extends Document {
     userType: string;
     phone: string;
     password: string;
+    planID: string;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -38,9 +39,16 @@ export const VerificationCodeSchema = new Schema<VerificationCode>(
     userData: {
       firstName: String,
       lastName: String,
-      userType: String,
+      userType: {
+        type: String,
+        required: false,
+      },
       phone: String,
       password: String,
+      planID: {
+        type: String,
+        required: false,
+      },
     },
   },
   {

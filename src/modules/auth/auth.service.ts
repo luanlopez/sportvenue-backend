@@ -43,13 +43,13 @@ export class AuthService {
     }
 
     await this.verificationModel.updateMany(
-      { 
+      {
         email: preRegisterDto.email,
-        isUsed: false 
+        isUsed: false,
       },
-      { 
-        isUsed: true 
-      }
+      {
+        isUsed: true,
+      },
     );
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -62,6 +62,7 @@ export class AuthService {
         firstName: preRegisterDto.firstName,
         lastName: preRegisterDto.lastName,
         userType: preRegisterDto?.userType,
+        planID: preRegisterDto?.planID,
         phone: preRegisterDto.phone,
         password: preRegisterDto.password,
       },
@@ -119,7 +120,15 @@ export class AuthService {
       phone: verification.userData.phone,
       firstName: verification.userData.firstName,
       lastName: verification.userData.lastName,
+      userType: verification.userData.userType as UserType,
     });
+
+    if (verification.userData.planID) {
+      await this.usersService.assignSubscription(
+        newUser.id,
+        verification.userData.planID,
+      );
+    }
 
     verification.isUsed = true;
     await verification.save();
