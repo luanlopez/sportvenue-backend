@@ -9,6 +9,8 @@ import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { ErrorCodes } from 'src/common/errors/error-codes';
+import { BillingService } from '../billing/billing.service';
+import { BillingType } from '../billing/dtos/create-billing.dto';
 
 @Injectable()
 export class ReservationService {
@@ -17,6 +19,7 @@ export class ReservationService {
     private readonly reservationModel: Model<Reservation>,
     private readonly courtService: CourtService,
     private readonly resendService: ResendService,
+    private readonly billingService: BillingService,
   ) {}
 
   async create(
@@ -107,6 +110,21 @@ export class ReservationService {
           reservation.reservedStartTime,
           status,
         );
+      }
+
+      if (status === 'approved') {
+        const getCourt = await this.courtService.getCourtByID(
+          reservation.courtId.toString(),
+        );
+
+        await this.billingService.createBilling({
+          amount: getCourt.pricePerHour,
+          billingType: BillingType.PRESENCIAL,
+          courtId: reservation.courtId.toString(),
+          ownerId: reservation.ownerId.toString(),
+          reservationId: reservation._id.toString(),
+          userId: reservation.userId.toString(),
+        });
       }
 
       if (status === 'approved' || status === 'requested') {

@@ -100,7 +100,10 @@ export class ReservationController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: 'Internal server error.',
   })
-  async approve(@Param('id') id: string, @User() user: UserInterface): Promise<Partial<Reservation>> {
+  async approve(
+    @Param('id') id: string,
+    @User() user: UserInterface,
+  ): Promise<Partial<Reservation>> {
     await this.lokiLogger.info('Approving reservation', {
       endpoint: '/reservations/:id/approve',
       method: 'PATCH',
@@ -149,7 +152,10 @@ export class ReservationController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: 'Internal server error.',
   })
-  async reject(@Param('id') id: string, @User() user: UserInterface): Promise<Partial<Reservation>> {
+  async reject(
+    @Param('id') id: string,
+    @User() user: UserInterface,
+  ): Promise<Partial<Reservation>> {
     await this.lokiLogger.info('Rejecting reservation', {
       endpoint: '/reservations/:id/reject',
       method: 'PATCH',
@@ -235,10 +241,12 @@ export class ReservationController {
     });
 
     try {
-      const result = await this.reservationService.findByOwnerWithPaginationAndStatus(
-        user,
-        { page, limit, status },
-      );
+      const result =
+        await this.reservationService.findByOwnerWithPaginationAndStatus(user, {
+          page,
+          limit,
+          status,
+        });
 
       await this.lokiLogger.info('Owner reservations fetched successfully', {
         endpoint: '/reservations/owner',
@@ -313,10 +321,12 @@ export class ReservationController {
     });
 
     try {
-      const result = await this.reservationService.findByUserWithPaginationAndStatus(
-        user,
-        { page, limit, status },
-      );
+      const result =
+        await this.reservationService.findByUserWithPaginationAndStatus(user, {
+          page,
+          limit,
+          status,
+        });
 
       await this.lokiLogger.info('User reservations fetched successfully', {
         endpoint: '/reservations/user',
@@ -379,7 +389,10 @@ export class ReservationController {
     });
 
     try {
-      const result = await this.reservationService.cancellingReservaition(id, reason);
+      const result = await this.reservationService.cancellingReservaition(
+        id,
+        reason,
+      );
 
       await this.lokiLogger.info('Reservation cancelled successfully', {
         endpoint: '/reservations/:id/cancel',

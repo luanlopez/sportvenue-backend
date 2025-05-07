@@ -12,6 +12,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { LokiLoggerModule } from './common/logger/loki-logger.module';
 import { AppController } from './app.controller';
+import { BillingModule } from './modules/billing/billing.module';
 
 const multerOptions: MulterOptions = {
   fileFilter: (req, file, cb) => {
@@ -40,6 +41,7 @@ const multerOptions: MulterOptions = {
     AuthModule,
     PaymentsModule,
     LokiLoggerModule,
+    BillingModule,
   ],
   controllers: [AppController],
 })
