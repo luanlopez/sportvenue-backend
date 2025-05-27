@@ -7,6 +7,7 @@ import { jwtConfig } from './config/jwt.config';
 import { ResendService } from '../common/resend/resend.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
+import { PaymentsService } from '../payments/payments.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -14,6 +15,7 @@ describe('AuthService', () => {
   let jwtServiceMock: any;
   let cryptoServiceMock: any;
   let resendServiceMock: any;
+  let paymentServiceMock: any;
 
   beforeEach(async () => {
     process.env.ACCESS_TOKEN_EXPIRATION = '15m';
@@ -40,6 +42,10 @@ describe('AuthService', () => {
       sendReservationStatusNotification: jest.fn(),
     };
 
+    paymentServiceMock = {
+      hasPendingPaymentsForUser: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -47,6 +53,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: jwtServiceMock },
         { provide: CryptoService, useValue: cryptoServiceMock },
         { provide: ResendService, useValue: resendServiceMock },
+        { provide: PaymentsService, useValue: paymentServiceMock },
         { provide: getModelToken('VerificationCode'), useValue: {} },
       ],
     }).compile();

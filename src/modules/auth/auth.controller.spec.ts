@@ -6,12 +6,14 @@ import { PreRegisterDTO } from './dtos/pre-register.dto';
 import { ConfigService } from '@nestjs/config';
 import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 import { DecryptInterceptor } from '../../common/interceptors/decrypt.interceptor';
+import { PaymentsService } from '../payments/payments.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
   let authServiceMock: any;
   let configServiceMock: any;
   let loggerServiceMock: any;
+  let paymentServiceMock: any;
 
   beforeEach(async () => {
     configServiceMock = {
@@ -36,6 +38,10 @@ describe('AuthController', () => {
       preRegister: jest.fn(),
     };
 
+    paymentServiceMock = {
+      hasPendingPaymentsForUser: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
@@ -43,6 +49,7 @@ describe('AuthController', () => {
         { provide: ConfigService, useValue: configServiceMock },
         { provide: LokiLoggerService, useValue: loggerServiceMock },
         DecryptInterceptor,
+        { provide: PaymentsService, useValue: paymentServiceMock },
       ],
     }).compile();
 
