@@ -52,7 +52,7 @@ export class Invoice {
 
   @Prop({
     type: Date,
-    required: true,
+    required: false,
     default: Date.now,
   })
   paidAt: Date;

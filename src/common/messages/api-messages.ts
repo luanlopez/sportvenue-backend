@@ -132,4 +132,10 @@ export const ApiMessages = {
       message: 'Ocorreu um erro interno no servidor',
     },
   },
+  Dashboard: {
+    Failed: {
+      title: 'Falha ao Obter Dados do Dashboard',
+      message: 'Não foi possível obter os dados do dashboard',
+    },
+  },
 } as const;

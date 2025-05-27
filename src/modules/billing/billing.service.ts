@@ -1,13 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { BillingStatus, CreateBillingDTO } from './dtos/create-billing.dto';
+import {
+  BillingStatus,
+  BillingType,
+  CreateBillingDTO,
+} from './dtos/create-billing.dto';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { Billing } from 'src/schema/billing.schema';
 import { UpdateBillingDTO } from './dtos/update-billing.dto';
 import { Invoice, PaymentMethod } from 'src/schema/invoice.schema';
+
+interface GetInvoicesFilters {
+  page?: number;
+  limit?: number;
+  status?: BillingStatus;
+  paymentMethod?: BillingType;
+  createdAtStart?: Date;
+  createdAtEnd?: Date;
+}
 
 @Injectable()
 export class BillingService {
@@ -54,6 +67,7 @@ export class BillingService {
 
       return newBilling;
     } catch (error) {
+      console.log(error);
       if (error instanceof CustomApiError) {
         throw error;
       }
@@ -196,7 +210,18 @@ export class BillingService {
         updateDto.status === BillingStatus.PAGO_PRESENCIALMENTE ||
         updateDto.status === BillingStatus.PAGO_SPORTMAP
       ) {
-        updateData.paidAt = new Date();
+        const now = new Date();
+
+        updateData.lastPaidAt = now;
+
+        const nextMonth = new Date(now);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+        updateData.nextPaidAt = nextMonth;
+
+        const newDueDate = new Date(nextMonth);
+        newDueDate.setDate(newDueDate.getDate() + 3);
+        updateData.dueDate = newDueDate;
       }
 
       const updatedBilling = await this.billingModel.findByIdAndUpdate(
@@ -207,6 +232,7 @@ export class BillingService {
 
       const invoice = await this.invoiceModel.findOne({
         billingId: billing._id,
+        status: BillingStatus.PENDING,
       });
 
       if (invoice) {
@@ -233,6 +259,171 @@ export class BillingService {
         throw error;
       }
 
+      throw new CustomApiError(
+        ApiMessages.Payment.Failed.title,
+        ApiMessages.Payment.Failed.message,
+        ErrorCodes.PAYMENT_FAILED,
+        400,
+      );
+    }
+  }
+
+  /**
+   * Obtém todas as cobranças relacionadas a uma reserva específica
+   *
+   * @param reservationId ID da reserva para filtrar as cobranças
+   * @param page Número da página a ser retornada
+   * @param limit Número de itens por página
+   * @param status Status opcional para filtrar as cobranças
+   * @returns Um objeto contendo os dados das cobranças e o total de registros
+   */
+  async getBillingsByReservation(
+    userId: string,
+    reservationId: string,
+    {
+      page = 1,
+      limit = 10,
+      status,
+    }: { page?: number; limit?: number; status?: BillingStatus },
+  ) {
+    try {
+      const query = { reservationId, ...(status && { status }) };
+
+      const [data, total] = await Promise.all([
+        this.billingModel
+          .find(query)
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .populate('userId')
+          .populate('ownerId')
+          .populate('courtId')
+          .sort({ createdAt: -1 })
+          .exec(),
+        this.billingModel.countDocuments(query).exec(),
+      ]);
+
+      return { data, total };
+    } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
+      throw new CustomApiError(
+        ApiMessages.Payment.Failed.title,
+        ApiMessages.Payment.Failed.message,
+        ErrorCodes.PAYMENT_FAILED,
+        400,
+      );
+    }
+  }
+
+  /**
+   * Obtém todas as faturas relacionadas a uma cobrança específica
+   *
+   * @param userId ID do usuário fazendo a solicitação
+   * @param billingId ID da cobrança para filtrar as faturas
+   * @param page Número da página a ser retornada
+   * @param limit Número de itens por página
+   * @param status Status opcional para filtrar as faturas
+   * @param paymentMethod Método de pagamento opcional para filtrar as faturas
+   * @param createdAtStart Data inicial opcional para filtrar as faturas
+   * @param createdAtEnd Data final opcional para filtrar as faturas
+   * @returns Um objeto contendo os dados das faturas e o total de registros
+   */
+  async getInvoicesByBillingId(
+    userId: string,
+    billingId: string,
+    {
+      page = 1,
+      limit = 10,
+      status,
+      paymentMethod,
+      createdAtStart,
+      createdAtEnd,
+    }: GetInvoicesFilters,
+  ) {
+    try {
+      const billing = await this.billingModel.findById(billingId);
+
+      if (!billing) {
+        throw new CustomApiError(
+          'Cobrança não encontrada',
+          'A cobrança especificada não foi encontrada',
+          ErrorCodes.BILLING_NOT_FOUND,
+          404,
+        );
+      }
+
+      if (
+        billing.ownerId.toString() !== userId &&
+        billing.userId.toString() !== userId
+      ) {
+        throw new CustomApiError(
+          'Acesso negado',
+          'Você não tem permissão para visualizar as faturas desta cobrança',
+          ErrorCodes.UNAUTHORIZED,
+          403,
+        );
+      }
+
+      const query = {
+        billingId,
+        ...(status && { status }),
+        ...(paymentMethod && { paymentMethod }),
+        ...((createdAtStart || createdAtEnd) && {
+          createdAt: {
+            ...(createdAtStart && { $gte: createdAtStart }),
+            ...(createdAtEnd && { $lte: createdAtEnd }),
+          },
+        }),
+      };
+
+      const [data, total] = await Promise.all([
+        this.invoiceModel
+          .find(query)
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .populate('userId', 'firstName lastName email')
+          .populate('ownerId', 'firstName lastName email')
+          .populate('courtId', 'name location')
+          .populate('reservationId')
+          .sort({ createdAt: -1 })
+          .exec(),
+        this.invoiceModel.countDocuments(query).exec(),
+      ]);
+
+      return { data, total };
+    } catch (error) {
+      if (error instanceof CustomApiError) {
+        throw error;
+      }
+
+      throw new CustomApiError(
+        ApiMessages.Payment.Failed.title,
+        ApiMessages.Payment.Failed.message,
+        ErrorCodes.PAYMENT_FAILED,
+        400,
+      );
+    }
+  }
+
+  /**
+   * Obtém todas as cobranças com um status específico
+   *
+   * @param status Status para filtrar as cobranças
+   * @returns Lista de cobranças com o status especificado
+   */
+  async getBillingsByStatus(status: BillingStatus) {
+    try {
+      return this.billingModel
+        .find({ status })
+        .populate('userId')
+        .populate('ownerId')
+        .populate('courtId')
+        .populate('reservationId')
+        .sort({ createdAt: -1 })
+        .exec();
+    } catch (error) {
       throw new CustomApiError(
         ApiMessages.Payment.Failed.title,
         ApiMessages.Payment.Failed.message,

@@ -422,4 +422,16 @@ export class AuthController {
       throw error;
     }
   }
+
+  @Get('check-pending-invoices')
+  @UseGuards(JwtAuthGuard)
+  async checkPendingInvoices(@User() user: UserInterface): Promise<{
+    hasPendingInvoices: boolean;
+  }> {
+    const hasPendingInvoices = await this.authService.checkPendingInvoices(
+      user.id,
+    );
+
+    return { hasPendingInvoices };
+  }
 }

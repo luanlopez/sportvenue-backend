@@ -12,6 +12,7 @@ import { VerificationCodeSchema } from 'src/schema/verification-code.schema';
 import { ResendModule } from '../common/resend/resend.module';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { LokiLoggerModule } from 'src/common/logger/loki-logger.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { LokiLoggerModule } from 'src/common/logger/loki-logger.module';
     ]),
     ResendModule,
     LokiLoggerModule,
+    PaymentsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy],

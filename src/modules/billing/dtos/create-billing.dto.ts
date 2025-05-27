@@ -78,6 +78,22 @@ export class CreateBillingDTO {
 
   @IsOptional()
   @ApiProperty({
+    description: 'Data do último pagamento',
+    example: '2023-12-31',
+    required: false,
+  })
+  lastPaidAt?: Date;
+
+  @IsOptional()
+  @ApiProperty({
+    description: 'Data do próximo pagamento',
+    example: '2023-12-31',
+    required: false,
+  })
+  nextPaidAt?: Date;
+
+  @IsOptional()
+  @ApiProperty({
     description: 'Metadados adicionais',
     example: { notes: 'Pagamento mensal' },
     required: false,

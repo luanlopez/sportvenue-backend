@@ -57,7 +57,6 @@ export class ReservationService {
 
       return reservation;
     } catch (error) {
-      console.log(error);
       throw new CustomApiError(
         ApiMessages.Generic.InternalError.title,
         ApiMessages.Generic.InternalError.message,
@@ -98,10 +97,10 @@ export class ReservationService {
       reservation.status = status;
       await reservation.save();
 
-      if (status === 'approved' || status === 'rejected') {
-        const user: any = reservation.userId;
-        const court: any = reservation.courtId;
+      const court: any = reservation.courtId;
+      const user: any = reservation.userId;
 
+      if (status === 'approved' || status === 'rejected') {
         await this.resendService.sendReservationStatusNotification(
           user.email,
           `${user.firstName} ${user.lastName}`,
@@ -114,16 +113,25 @@ export class ReservationService {
 
       if (status === 'approved') {
         const getCourt = await this.courtService.getCourtByID(
-          reservation.courtId.toString(),
+          court._id.toString(),
         );
+
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7);
+
+        const nextDay = new Date();
+        nextDay.setDate(nextDay.getDate() + 1);
 
         await this.billingService.createBilling({
           amount: getCourt.pricePerHour,
           billingType: BillingType.PRESENCIAL,
-          courtId: reservation.courtId.toString(),
-          ownerId: reservation.ownerId.toString(),
+          courtId: court._id.toString(),
+          ownerId: court.ownerId.toString(),
           reservationId: reservation._id.toString(),
-          userId: reservation.userId.toString(),
+          userId: user._id.toString(),
+          dueDate: dueDate,
+          nextPaidAt: nextDay,
+          lastPaidAt: null,
         });
       }
 

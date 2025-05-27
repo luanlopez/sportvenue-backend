@@ -16,6 +16,7 @@ import { UserType } from 'src/schema/user.schema';
 import { CustomApiError } from '../../common/errors/custom-api.error';
 import { ErrorCodes } from '../../common/errors/error-codes';
 import { ApiMessages } from '../../common/messages/api-messages';
+import { PaymentsService } from '../payments/payments.service';
 
 @Injectable()
 export class AuthService {
@@ -24,6 +25,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly cryptoService: CryptoService,
     private readonly resendService: ResendService,
+    private readonly paymentService: PaymentsService,
     @InjectModel('VerificationCode')
     private readonly verificationModel: Model<VerificationCode>,
   ) {}
@@ -413,5 +415,17 @@ export class AuthService {
       user.email,
       user.firstName,
     );
+  }
+
+  /**
+   * Verifica se há faturas pendentes para um usuário específico
+   *
+   * @param userId ID do usuário a ser verificado
+   * @returns true se houver faturas pendentes, false caso contrário
+   */
+  async checkPendingInvoices(userId: string): Promise<boolean> {
+    const hasPendingInvoices =
+      await this.paymentService.hasPendingPaymentsForUser(userId);
+    return hasPendingInvoices;
   }
 }

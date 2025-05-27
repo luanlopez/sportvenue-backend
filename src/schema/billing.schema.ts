@@ -12,6 +12,9 @@ export interface Billing extends Document {
   amount: number;
   billingType: BillingType;
   status: BillingStatus;
+  nextPaidAt?: Date;
+  lastPaidAt?: Date;
+  dueDate?: Date;
 }
 
 export const BillingSchema = new Schema<Billing>(
@@ -54,6 +57,18 @@ export const BillingSchema = new Schema<Billing>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+    },
+    nextPaidAt: {
+      type: Date,
+      required: false,
+    },
+    lastPaidAt: {
+      type: Date,
+      required: false,
+    },
+    dueDate: {
+      type: Date,
+      required: false,
     },
   },
   {

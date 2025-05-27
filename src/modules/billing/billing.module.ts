@@ -4,14 +4,19 @@ import { BillingService } from './billing.service';
 import { BillingSchema } from '../../schema/billing.schema';
 import { LokiLoggerModule } from 'src/common/logger/loki-logger.module';
 import { InvoiceSchema } from 'src/schema/invoice.schema';
+import { BillingController } from './billing.controller';
+import { BillingCronService } from './billing.cron';
+
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: 'Billing', schema: BillingSchema }]),
-    MongooseModule.forFeature([{ name: 'Invoice', schema: InvoiceSchema }]),
+    MongooseModule.forFeature([
+      { name: 'Billing', schema: BillingSchema },
+      { name: 'Invoice', schema: InvoiceSchema },
+    ]),
     LokiLoggerModule,
   ],
-  controllers: [],
-  providers: [BillingService],
+  controllers: [BillingController],
+  providers: [BillingService, BillingCronService],
   exports: [BillingService],
 })
 export class BillingModule {}
