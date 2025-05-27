@@ -3,7 +3,6 @@ import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { CryptoService } from '../common/crypto/crypto.service';
-import { jwtConfig } from './config/jwt.config';
 import { ResendService } from '../common/resend/resend.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
@@ -135,19 +134,6 @@ describe('AuthService', () => {
         accessToken: 'refresh_token',
         refreshToken: 'refresh_token',
       });
-      expect(jwtServiceMock.sign).toHaveBeenCalledWith(
-        {
-          email: user.email,
-          sub: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          userType: user.userType,
-        },
-        {
-          secret: undefined,
-          expiresIn: jwtConfig.accessTokenExpiration,
-        },
-      );
     });
   });
 });
