@@ -78,6 +78,19 @@ export class PaymentsCronService {
           continue;
         }
 
+        const expiredBoletos = await this.paymentModel.find({
+          userId: user._id.toString(),
+          paymentMethod: PaymentMethod.BOLETO,
+          status: PaymentStatus.EXPIRED,
+        });
+
+        if (expiredBoletos.length > 0) {
+          this.logger.log(
+            `Skipping user ${user._id.toString()}: has ${expiredBoletos.length} expired boletos`,
+          );
+          continue;
+        }
+
         if (!user.document) {
           this.logger.error(
             `Skipping user ${user._id.toString()}: missing CPF/CNPJ`,

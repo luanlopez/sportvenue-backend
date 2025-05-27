@@ -12,6 +12,9 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { LokiLoggerModule } from './common/logger/loki-logger.module';
 import { AppController } from './app.controller';
+import { BillingModule } from './modules/billing/billing.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { DashboardsModule } from './modules/dashboards/dashboards.module';
 
 const multerOptions: MulterOptions = {
   fileFilter: (req, file, cb) => {
@@ -33,6 +36,7 @@ const multerOptions: MulterOptions = {
         uri: configService.get<string>('MONGO_URI'),
       }),
     }),
+    ScheduleModule.forRoot(),
     SubscriptionsModule,
     CourtModule,
     ReservationModule,
@@ -40,6 +44,8 @@ const multerOptions: MulterOptions = {
     AuthModule,
     PaymentsModule,
     LokiLoggerModule,
+    BillingModule,
+    DashboardsModule,
   ],
   controllers: [AppController],
 })

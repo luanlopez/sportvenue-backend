@@ -133,4 +133,27 @@ export class PaymentsService {
       );
     }
   }
+
+  /**
+   * Verifica se há faturas pendentes para um proprietário específico
+   *
+   * @param ownerId ID do proprietário a ser verificado
+   * @returns true se houver faturas pendentes, false caso contrário
+   */
+  async hasPendingPaymentsForUser(userId: string): Promise<boolean> {
+    try {
+      const pending = await this.paymentModel.exists({
+        userId,
+        status: 'EXPIRED',
+      });
+      return !!pending;
+    } catch (error) {
+      throw new CustomApiError(
+        ApiMessages.Payment.Failed.title,
+        ApiMessages.Payment.Failed.message,
+        ErrorCodes.PAYMENT_FAILED,
+        400,
+      );
+    }
+  }
 }

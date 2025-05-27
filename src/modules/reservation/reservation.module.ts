@@ -6,6 +6,7 @@ import { ReservationController } from './reservation.controller';
 import { CourtModule } from '../court/court.module';
 import { ResendModule } from '../common/resend/resend.module';
 import { LokiLoggerModule } from 'src/common/logger/loki-logger.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { LokiLoggerModule } from 'src/common/logger/loki-logger.module';
     CourtModule,
     ResendModule,
     LokiLoggerModule,
+    BillingModule,
   ],
   controllers: [ReservationController],
   providers: [ReservationService],

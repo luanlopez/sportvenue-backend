@@ -9,6 +9,8 @@ import { UserInterface } from '../auth/strategies/interfaces/user.interface';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { ErrorCodes } from 'src/common/errors/error-codes';
+import { BillingService } from '../billing/billing.service';
+import { BillingType } from '../billing/dtos/create-billing.dto';
 
 @Injectable()
 export class ReservationService {
@@ -17,6 +19,7 @@ export class ReservationService {
     private readonly reservationModel: Model<Reservation>,
     private readonly courtService: CourtService,
     private readonly resendService: ResendService,
+    private readonly billingService: BillingService,
   ) {}
 
   async create(
@@ -54,7 +57,6 @@ export class ReservationService {
 
       return reservation;
     } catch (error) {
-      console.log(error);
       throw new CustomApiError(
         ApiMessages.Generic.InternalError.title,
         ApiMessages.Generic.InternalError.message,
@@ -95,10 +97,10 @@ export class ReservationService {
       reservation.status = status;
       await reservation.save();
 
-      if (status === 'approved' || status === 'rejected') {
-        const user: any = reservation.userId;
-        const court: any = reservation.courtId;
+      const court: any = reservation.courtId;
+      const user: any = reservation.userId;
 
+      if (status === 'approved' || status === 'rejected') {
         await this.resendService.sendReservationStatusNotification(
           user.email,
           `${user.firstName} ${user.lastName}`,
@@ -107,6 +109,30 @@ export class ReservationService {
           reservation.reservedStartTime,
           status,
         );
+      }
+
+      if (status === 'approved') {
+        const getCourt = await this.courtService.getCourtByID(
+          court._id.toString(),
+        );
+
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7);
+
+        const nextDay = new Date();
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        await this.billingService.createBilling({
+          amount: getCourt.pricePerHour,
+          billingType: BillingType.PRESENCIAL,
+          courtId: court._id.toString(),
+          ownerId: court.ownerId.toString(),
+          reservationId: reservation._id.toString(),
+          userId: user._id.toString(),
+          dueDate: dueDate,
+          nextPaidAt: nextDay,
+          lastPaidAt: null,
+        });
       }
 
       if (status === 'approved' || status === 'requested') {
