@@ -101,6 +101,29 @@ export const ApiMessages = {
     },
   },
 
+  Event: {
+    NotFound: {
+      title: 'Evento não Encontrado',
+      message: 'O evento solicitado não foi encontrado',
+    },
+    AlreadyExists: {
+      title: 'Evento já Existente',
+      message: 'O evento já existe',
+    },
+    CreationFailed: {
+      title: 'Falha na Criação do Evento',
+      message: 'Não foi possível criar o evento',
+    },
+    UpdateFailed: {
+      title: 'Falha na Atualização do Evento',
+      message: 'Não foi possível atualizar o evento',
+    },
+    DeleteFailed: {
+      title: 'Falha na Exclusão do Evento',
+      message: 'Não foi possível excluir o evento',
+    },
+  },
+
   Subscription: {
     NoPlan: {
       title: 'Plano não encontrado',
