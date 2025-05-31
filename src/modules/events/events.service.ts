@@ -106,12 +106,8 @@ export class EventsService {
       query.type = type;
     }
 
-    if (status) {
-      query.status = status;
-    }
-
     if (courtId) {
-      query.court = courtId;
+      query.courtId = courtId;
     }
 
     const total = await this.eventModel.countDocuments(query);
@@ -120,7 +116,7 @@ export class EventsService {
       .skip((page - 1) * limit)
       .limit(limit)
       .populate('organizer', 'firstName lastName email phone')
-      .populate('court')
+      .populate('courtId')
       .sort({ startDate: 1 })
       .exec();
 
