@@ -29,7 +29,6 @@ import { UserType } from '../../schema/user.schema';
 
 @ApiTags('Events')
 @Controller('events')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
@@ -37,6 +36,7 @@ export class EventsController {
   ) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserType.HOUSE_OWNER)
   @ApiOperation({ summary: 'Create a new event' })
   @ApiBody({ type: CreateEventDTO })
@@ -94,6 +94,7 @@ export class EventsController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserType.HOUSE_OWNER)
   @ApiOperation({ summary: 'Get event details' })
   @ApiParam({ name: 'id', description: 'Event ID' })
@@ -102,6 +103,7 @@ export class EventsController {
   }
 
   @Put(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserType.HOUSE_OWNER)
   @ApiOperation({ summary: 'Update an event' })
   @ApiParam({ name: 'id', description: 'Event ID' })
@@ -114,6 +116,7 @@ export class EventsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserType.HOUSE_OWNER)
   @ApiOperation({ summary: 'Delete an event' })
   @ApiParam({ name: 'id', description: 'Event ID' })
