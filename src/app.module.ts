@@ -15,6 +15,7 @@ import { AppController } from './app.controller';
 import { BillingModule } from './modules/billing/billing.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
+import { EventsModule } from './modules/events/events.module';
 
 const multerOptions: MulterOptions = {
   fileFilter: (req, file, cb) => {
@@ -46,6 +47,7 @@ const multerOptions: MulterOptions = {
     LokiLoggerModule,
     BillingModule,
     DashboardsModule,
+    EventsModule,
   ],
   controllers: [AppController],
 })
