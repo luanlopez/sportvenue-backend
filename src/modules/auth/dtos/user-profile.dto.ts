@@ -9,4 +9,5 @@ export class UserProfileDto {
   picture?: string;
   googleId?: string;
   subscriptionPlanId?: string;
+  stripeCustomerId?: string;
 }

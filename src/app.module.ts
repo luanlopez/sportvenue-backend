@@ -9,13 +9,15 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CourtModule } from './modules/court/court.module';
 import { PaymentsModule } from './modules/payments/payments.module';
-import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { PlanModule } from './modules/plan/plan.module';
 import { LokiLoggerModule } from './common/logger/loki-logger.module';
 import { AppController } from './app.controller';
 import { BillingModule } from './modules/billing/billing.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { EventsModule } from './modules/events/events.module';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 const multerOptions: MulterOptions = {
   fileFilter: (req, file, cb) => {
@@ -38,7 +40,7 @@ const multerOptions: MulterOptions = {
       }),
     }),
     ScheduleModule.forRoot(),
-    SubscriptionsModule,
+    PlanModule,
     CourtModule,
     ReservationModule,
     UsersModule,
@@ -48,6 +50,8 @@ const multerOptions: MulterOptions = {
     BillingModule,
     DashboardsModule,
     EventsModule,
+    SubscriptionsModule,
+    NotificationModule,
   ],
   controllers: [AppController],
 })

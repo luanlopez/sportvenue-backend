@@ -1,5 +1,5 @@
 import { Schema, Document, model } from 'mongoose';
-import { SubscriptionPlan } from './subscription-plan.schema';
+import { Subscription } from './subscription.schema';
 
 export enum UserType {
   USER = 'USER',
@@ -23,11 +23,9 @@ export interface User extends Document {
   phone?: string;
   googleId?: string;
   picture?: string;
-  lastBillingDate?: Date;
-  nextBillingDate?: Date;
-  trialEndsAt?: Date;
   document?: string;
-  subscriptionId?: SubscriptionPlan;
+  subscriptionId?: Subscription;
+  stripeCustomerId?: string;
 }
 
 export const UserSchema = new Schema<User>(
@@ -60,9 +58,6 @@ export const UserSchema = new Schema<User>(
       type: String,
       required: false,
     },
-    lastBillingDate: { type: Date, required: false },
-    nextBillingDate: { type: Date, required: false },
-    trialEndsAt: { type: Date, required: false },
     document: {
       type: String,
       required: false,
@@ -70,7 +65,11 @@ export const UserSchema = new Schema<User>(
     },
     subscriptionId: {
       type: Schema.Types.ObjectId,
-      ref: 'SubscriptionPlan',
+      ref: 'Subscription',
+      required: false,
+    },
+    stripeCustomerId: {
+      type: String,
       required: false,
     },
   },

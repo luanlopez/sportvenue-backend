@@ -154,6 +154,10 @@ export const ApiMessages = {
       title: 'Erro Interno',
       message: 'Ocorreu um erro interno no servidor',
     },
+    Create: {
+      title: 'Falha na Criação da Assinatura',
+      message: 'Não foi possível criar a assinatura',
+    },
   },
   Dashboard: {
     Failed: {

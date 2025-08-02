@@ -112,7 +112,10 @@ describe('ReservationController', () => {
         .spyOn(reservationService, 'updateReservationStatus')
         .mockResolvedValue(reservation);
 
-      const result = await reservationController.approve('reservation123', user);
+      const result = await reservationController.approve(
+        'reservation123',
+        user,
+      );
       expect(reservationService.updateReservationStatus).toHaveBeenCalledWith(
         'reservation123',
         'approved',

@@ -67,7 +67,6 @@ export class AuthService {
         firstName: preRegisterDto.firstName,
         lastName: preRegisterDto.lastName,
         userType: preRegisterDto?.userType,
-        planID: preRegisterDto?.planID,
         phone: preRegisterDto.phone,
         password: preRegisterDto.password,
       },
@@ -129,13 +128,6 @@ export class AuthService {
       userType: verification.userData.userType as UserType,
     });
 
-    if (verification.userData.planID) {
-      await this.usersService.assignSubscription(
-        newUser.id,
-        verification.userData.planID,
-      );
-    }
-
     verification.isUsed = true;
     await verification.save();
 
@@ -164,6 +156,7 @@ export class AuthService {
       picture: userFinded?.picture,
       googleId: userFinded?.googleId,
       subscriptionPlanId: String(userFinded?.subscriptionId),
+      stripeCustomerId: userFinded?.stripeCustomerId,
     };
   }
 

@@ -5,7 +5,7 @@ import { ImageKitService } from '../common/imagekit/imagekit.service';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
-import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { SubscriptionsService } from '../plan/plan.service';
 import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 describe('CourtService', () => {

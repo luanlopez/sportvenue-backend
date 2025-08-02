@@ -1,6 +1,6 @@
 import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { PlanType } from '../../../schema/subscription-plan.schema';
+import { PlanType } from '../../../schema/plan.schema';
 
 export class CreateSubscriptionPlanDTO {
   @IsString()
@@ -26,6 +26,14 @@ export class CreateSubscriptionPlanDTO {
     example: 9990,
   })
   price: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'ID do preço no Stripe',
+    example: 'price_1234567890',
+  })
+  stripePriceId: string;
 
   @IsNumber()
   @IsNotEmpty()

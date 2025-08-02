@@ -11,6 +11,8 @@ import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { ErrorCodes } from 'src/common/errors/error-codes';
 import { BillingService } from '../billing/billing.service';
 import { BillingType } from '../billing/dtos/create-billing.dto';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from 'src/schema/notification.schema';
 
 @Injectable()
 export class ReservationService {
@@ -20,6 +22,7 @@ export class ReservationService {
     private readonly courtService: CourtService,
     private readonly resendService: ResendService,
     private readonly billingService: BillingService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(
@@ -54,6 +57,23 @@ export class ReservationService {
           phone: court.user.phone,
         },
       );
+
+      await this.notificationService.createNotification({
+        userId: court.owner_id,
+        title: 'Nova Solicitação de Reserva',
+        message: `Você recebeu uma nova solicitação de reserva para a quadra "${court.name}" no dia ${data.dayOfWeek} às ${data.reservedStartTime} por ${user.firstName} ${user.lastName}.`,
+        type: NotificationType.RESERVATION_REQUEST,
+        relatedEntityId: reservation._id.toString(),
+        relatedEntityType: 'reservation',
+        metadata: {
+          courtName: court.name,
+          courtId: court._id.toString(),
+          dayOfWeek: data.dayOfWeek,
+          time: data.reservedStartTime,
+          userName: `${user.firstName} ${user.lastName}`,
+          userId: user.id,
+        },
+      });
 
       return reservation;
     } catch (error) {
@@ -109,6 +129,25 @@ export class ReservationService {
           reservation.reservedStartTime,
           status,
         );
+
+        await this.notificationService.createNotification({
+          userId: user._id.toString(),
+          title: `Reserva ${status === 'approved' ? 'Aprovada' : 'Rejeitada'}`,
+          message: `Sua reserva para a quadra "${court.name}" no dia ${reservation.dayOfWeek} às ${reservation.reservedStartTime} foi ${status === 'approved' ? 'aprovada' : 'rejeitada'}.`,
+          type:
+            status === 'approved'
+              ? NotificationType.RESERVATION_APPROVED
+              : NotificationType.RESERVATION_REJECTED,
+          relatedEntityId: reservation._id.toString(),
+          relatedEntityType: 'reservation',
+          metadata: {
+            courtName: court.name,
+            courtId: court._id.toString(),
+            dayOfWeek: reservation.dayOfWeek,
+            time: reservation.reservedStartTime,
+            status: status,
+          },
+        });
       }
 
       if (status === 'approved') {
