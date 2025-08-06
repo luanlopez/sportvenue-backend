@@ -190,6 +190,7 @@ export class CourtService {
           { name: new RegExp(search, 'i') },
           { address: new RegExp(search, 'i') },
           { neighborhood: new RegExp(search, 'i') },
+          { city: new RegExp(search, 'i') },
         ];
       }
 

@@ -77,21 +77,6 @@ export class PaymentsService {
       console.log('Webhook event received:', event.type);
 
       switch (event.type) {
-        case 'payment_intent.succeeded':
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          await this.updatePaymentStatus(paymentIntent.id, PaymentStatus.PAID);
-          await this.sendPaymentSuccessNotification(paymentIntent);
-          break;
-
-        case 'payment_intent.payment_failed':
-          const failedPayment = event.data.object as Stripe.PaymentIntent;
-          await this.updatePaymentStatus(
-            failedPayment.id,
-            PaymentStatus.EXPIRED,
-          );
-          await this.sendPaymentFailedNotification(failedPayment);
-          break;
-
         case 'invoice.paid':
           const paidInvoice = event.data.object as Stripe.Invoice;
           await this.handleInvoicePaid(paidInvoice);
@@ -101,6 +86,7 @@ export class PaymentsService {
         case 'customer.subscription.deleted':
           const deletedSubscription = event.data.object as Stripe.Subscription;
           await this.handleSubscriptionDeleted(deletedSubscription);
+          await this.sendSubscriptionCanceledNotification(deletedSubscription);
           break;
       }
 
@@ -113,84 +99,6 @@ export class PaymentsService {
         ErrorCodes.WEBHOOK_FAILED,
         400,
       );
-    }
-  }
-
-  private async updatePaymentStatus(
-    stripePaymentIntentId: string,
-    status: PaymentStatus,
-  ) {
-    try {
-      await this.paymentModel.findOneAndUpdate(
-        { stripePaymentIntentId },
-        { status },
-        { new: true },
-      );
-    } catch (error) {
-      throw new CustomApiError(
-        ApiMessages.Payment.Failed.title,
-        ApiMessages.Payment.Failed.message,
-        ErrorCodes.PAYMENT_FAILED,
-        400,
-      );
-    }
-  }
-
-  private async sendPaymentSuccessNotification(
-    paymentIntent: Stripe.PaymentIntent,
-  ) {
-    try {
-      const { userId, reservationId, courtId } = paymentIntent.metadata;
-      const amount = paymentIntent.amount / 100;
-
-      await this.notificationService.createNotification({
-        userId,
-        title: 'Pagamento Aprovado',
-        message: `Seu pagamento de R$ ${amount.toFixed(2)} foi processado com sucesso! Sua reserva foi confirmada.`,
-        type: NotificationType.PAYMENT_SUCCESS,
-        relatedEntityId: reservationId,
-        relatedEntityType: 'reservation',
-        metadata: {
-          paymentIntentId: paymentIntent.id,
-          amount,
-          courtId,
-          reservationId,
-        },
-      });
-
-      console.log(`Payment success notification sent for user: ${userId}`);
-    } catch (error) {
-      console.error('Error sending payment success notification:', error);
-    }
-  }
-
-  private async sendPaymentFailedNotification(
-    paymentIntent: Stripe.PaymentIntent,
-  ) {
-    try {
-      const { userId, reservationId, courtId } = paymentIntent.metadata;
-      const amount = paymentIntent.amount / 100;
-
-      await this.notificationService.createNotification({
-        userId,
-        title: 'Pagamento Falhou',
-        message: `O pagamento de R$ ${amount.toFixed(2)} não foi processado. Por favor, tente novamente ou entre em contato conosco.`,
-        type: NotificationType.PAYMENT_FAILED,
-        relatedEntityId: reservationId,
-        relatedEntityType: 'reservation',
-        metadata: {
-          paymentIntentId: paymentIntent.id,
-          amount,
-          courtId,
-          reservationId,
-          failureReason:
-            paymentIntent.last_payment_error?.message || 'Unknown error',
-        },
-      });
-
-      console.log(`Payment failed notification sent for user: ${userId}`);
-    } catch (error) {
-      console.error('Error sending payment failed notification:', error);
     }
   }
 
@@ -233,6 +141,37 @@ export class PaymentsService {
         'Error sending subscription payment success notification:',
         error,
       );
+    }
+  }
+
+  private async sendSubscriptionCanceledNotification(
+    subscription: Stripe.Subscription,
+  ) {
+    try {
+      const customerId = subscription.customer as string;
+      const subscriptionId = subscription.id;
+
+      const user = await this.getUserByStripeCustomerId(customerId);
+      if (!user) {
+        console.log(`User not found for Stripe customer: ${customerId}`);
+        return;
+      }
+
+      await this.notificationService.createNotification({
+        userId: user._id.toString(),
+        title: 'Assinatura cancelada por falta de pagamento',
+        message: `Sua assinatura foi cancelada por falta de pagamento! Por favor, entre em contato conosco para reativar sua assinatura.`,
+        type: NotificationType.SUBSCRIPTION_CANCELED,
+        relatedEntityId: subscriptionId,
+        relatedEntityType: 'subscription',
+        metadata: {},
+      });
+
+      console.log(
+        `Subscription canceled notification sent for user: ${user._id}`,
+      );
+    } catch (error) {
+      console.error('Error sending subscription canceled notification:', error);
     }
   }
 

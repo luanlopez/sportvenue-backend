@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Stripe } from 'stripe';
 import {
   Subscription,
@@ -123,7 +123,6 @@ export class SubscriptionsService {
 
       return await subscription.save();
     } catch (error) {
-      console.log(error);
       if (error instanceof CustomApiError) {
         throw error;
       }
@@ -180,6 +179,7 @@ export class SubscriptionsService {
       if (query.status) {
         stripeParams.status = query.status;
       }
+
       if (query.startDate || query.endDate) {
         stripeParams.created = {};
         if (query.startDate) {
@@ -193,6 +193,7 @@ export class SubscriptionsService {
           );
         }
       }
+
       const invoices = await this.stripe.invoices.list(stripeParams);
 
       const billingHistory: BillingHistoryDto = {
@@ -349,6 +350,7 @@ export class SubscriptionsService {
 
       const subscription = await this.subscriptionModel.findOne({
         userId: user._id,
+        _id: user.subscriptionId,
       });
 
       if (!subscription) {
@@ -396,6 +398,7 @@ export class SubscriptionsService {
       if (error instanceof CustomApiError) {
         throw error;
       }
+
       throw new CustomApiError(
         'Erro ao cancelar subscription',
         `Erro ao cancelar subscription: ${error.message}`,
@@ -412,8 +415,11 @@ export class SubscriptionsService {
    */
   async getSubscriptionInfo(userId: string): Promise<SubscriptionInfoDto> {
     try {
+      const user = await this.usersService.getUserById(userId);
+
       const subscription = await this.subscriptionModel.findOne({
-        userId: new Types.ObjectId(userId),
+        userId: user._id,
+        _id: user.subscriptionId,
       });
 
       if (!subscription) {
@@ -432,8 +438,6 @@ export class SubscriptionsService {
       const paymentMethod = await this.stripe.paymentMethods.retrieve(
         stripeSubscription.default_payment_method as string,
       );
-
-      console.log(paymentMethod);
 
       const plan = await this.planService.getPlanById(
         subscription.planId.toString(),
@@ -527,6 +531,7 @@ export class SubscriptionsService {
 
       const subscription = await this.subscriptionModel.findOne({
         userId: user._id,
+        _id: user.subscriptionId,
       });
 
       if (!subscription) {

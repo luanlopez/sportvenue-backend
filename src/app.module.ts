@@ -18,6 +18,7 @@ import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { EventsModule } from './modules/events/events.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { PlacesModule } from './modules/places/places.module';
 
 const multerOptions: MulterOptions = {
   fileFilter: (req, file, cb) => {
@@ -52,6 +53,7 @@ const multerOptions: MulterOptions = {
     EventsModule,
     SubscriptionsModule,
     NotificationModule,
+    PlacesModule,
   ],
   controllers: [AppController],
 })
