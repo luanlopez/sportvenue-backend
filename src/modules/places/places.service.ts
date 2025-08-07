@@ -41,6 +41,8 @@ export interface TextSearchParams {
 export class PlacesService {
   private readonly apiKey: string;
   private readonly baseUrl = 'https://maps.googleapis.com/maps/api/place';
+  private readonly defaultRegion = 'br';
+  private readonly defaultLanguage = 'pt-BR';
 
   constructor(
     private readonly configService: ConfigService,
@@ -85,6 +87,8 @@ export class PlacesService {
           location: `${lat},${lng}`,
           radius,
           type,
+          region: this.defaultRegion,
+          language: this.defaultLanguage,
           keyword,
           key: this.apiKey,
         },
@@ -132,6 +136,8 @@ export class PlacesService {
         params: {
           query: encodeURIComponent(query),
           type,
+          region: this.defaultRegion,
+          language: this.defaultLanguage,
           key: this.apiKey,
         },
       });
@@ -177,6 +183,8 @@ export class PlacesService {
           fields:
             'place_id,name,formatted_address,geometry,rating,user_ratings_total,types,vicinity,photos,formatted_phone_number,website,opening_hours,price_level',
           key: this.apiKey,
+          region: this.defaultRegion,
+          language: this.defaultLanguage,
         },
       });
 

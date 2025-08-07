@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Stripe } from 'stripe';
 import {
   Subscription,
@@ -582,5 +582,19 @@ export class SubscriptionsService {
         500,
       );
     }
+  }
+
+  /**
+   * Busca o status da subscription do usuário
+   * @param userId ID do usuário
+   * @param subscriptionId ID da subscription
+   * @returns Status da subscription
+   */
+  async getSubscriptionStatus(subscriptionId: string): Promise<string> {
+    const subscriptionStatus = await this.subscriptionModel.findOne({
+      _id: new Types.ObjectId(subscriptionId),
+    });
+
+    return subscriptionStatus?.status;
   }
 }

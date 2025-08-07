@@ -13,6 +13,7 @@ import { ResendModule } from '../common/resend/resend.module';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { LokiLoggerModule } from 'src/common/logger/loki-logger.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PaymentsModule } from '../payments/payments.module';
     ResendModule,
     LokiLoggerModule,
     PaymentsModule,
+    SubscriptionsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy],
