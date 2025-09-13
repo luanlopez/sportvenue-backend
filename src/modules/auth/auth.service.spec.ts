@@ -7,6 +7,7 @@ import { ResendService } from '../common/resend/resend.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { PaymentsService } from '../payments/payments.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -15,6 +16,7 @@ describe('AuthService', () => {
   let cryptoServiceMock: any;
   let resendServiceMock: any;
   let paymentServiceMock: any;
+  let subscriptionServiceMock: any;
 
   beforeEach(async () => {
     process.env.ACCESS_TOKEN_EXPIRATION = '15m';
@@ -45,6 +47,10 @@ describe('AuthService', () => {
       hasPendingPaymentsForUser: jest.fn(),
     };
 
+    subscriptionServiceMock = {
+      getSubscriptionStatus: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
@@ -53,6 +59,7 @@ describe('AuthService', () => {
         { provide: CryptoService, useValue: cryptoServiceMock },
         { provide: ResendService, useValue: resendServiceMock },
         { provide: PaymentsService, useValue: paymentServiceMock },
+        { provide: SubscriptionsService, useValue: subscriptionServiceMock },
         { provide: getModelToken('VerificationCode'), useValue: {} },
       ],
     }).compile();
