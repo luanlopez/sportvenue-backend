@@ -16,7 +16,7 @@ import { CourtCategories } from './enums/court-categories.enum';
 import { CustomApiError } from 'src/common/errors/custom-api.error';
 import { ApiMessages } from 'src/common/messages/api-messages';
 import { ErrorCodes } from 'src/common/errors/error-codes';
-import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { PlanService } from '../plan/plan.service';
 import { LokiLoggerService } from 'src/common/logger/loki-logger.service';
 
 @Injectable()
@@ -24,8 +24,8 @@ export class CourtService {
   constructor(
     @InjectModel('Court') private readonly courtModel: Model<Court>,
     private readonly imageKitService: ImageKitService,
-    @Inject(forwardRef(() => SubscriptionsService))
-    private readonly subscriptionsService: SubscriptionsService,
+    @Inject(forwardRef(() => PlanService))
+    private readonly planService: PlanService,
     private readonly lokiLogger: LokiLoggerService,
   ) {}
 
@@ -38,7 +38,7 @@ export class CourtService {
       userId: user.id,
     });
 
-    await this.subscriptionsService.validateCourtCreation(user.id);
+    await this.planService.validateCourtCreation(user.id);
 
     try {
       const createdCourtData = new this.courtModel({
@@ -190,6 +190,7 @@ export class CourtService {
           { name: new RegExp(search, 'i') },
           { address: new RegExp(search, 'i') },
           { neighborhood: new RegExp(search, 'i') },
+          { city: new RegExp(search, 'i') },
         ];
       }
 

@@ -13,6 +13,10 @@ import {
   PaymentMethod,
   PaymentStatus,
 } from '../../schema/payment.schema';
+import { User } from 'src/schema/user.schema';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from 'src/schema/notification.schema';
 
 @Injectable()
 export class PaymentsService {
@@ -21,6 +25,9 @@ export class PaymentsService {
   constructor(
     private configService: ConfigService,
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
+    @InjectModel('User') private userModel: Model<User>,
+    private subscriptionsService: SubscriptionsService,
+    private notificationService: NotificationService,
   ) {
     this.stripe = new Stripe(configService.get('STRIPE_SECRET_KEY'), {
       apiVersion: '2025-02-24.acacia',
@@ -63,30 +70,29 @@ export class PaymentsService {
     }
   }
 
-  async handleWebhook(signature: string, payload: Buffer) {
+  async handleWebhook(signature: string, body: any) {
     try {
-      const event = this.stripe.webhooks.constructEvent(
-        payload,
-        signature,
-        this.configService.get('STRIPE_WEBHOOK_SECRET'),
-      );
+      const event = body;
+
+      console.log('Webhook event received:', event.type);
 
       switch (event.type) {
-        case 'payment_intent.succeeded':
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          await this.updatePaymentStatus(paymentIntent.id, PaymentStatus.PAID);
+        case 'invoice.paid':
+          const paidInvoice = event.data.object as Stripe.Invoice;
+          await this.handleInvoicePaid(paidInvoice);
+          await this.sendSubscriptionPaymentSuccessNotification(paidInvoice);
           break;
-        case 'payment_intent.payment_failed':
-          const failedPayment = event.data.object as Stripe.PaymentIntent;
-          await this.updatePaymentStatus(
-            failedPayment.id,
-            PaymentStatus.EXPIRED,
-          );
+
+        case 'customer.subscription.deleted':
+          const deletedSubscription = event.data.object as Stripe.Subscription;
+          await this.handleSubscriptionDeleted(deletedSubscription);
+          await this.sendSubscriptionCanceledNotification(deletedSubscription);
           break;
       }
 
       return { received: true };
     } catch (error) {
+      console.error('Webhook error:', error);
       throw new CustomApiError(
         ApiMessages.Payment.WebhookFailed.title,
         ApiMessages.Payment.WebhookFailed.message,
@@ -96,23 +102,85 @@ export class PaymentsService {
     }
   }
 
-  private async updatePaymentStatus(
-    stripePaymentIntentId: string,
-    status: PaymentStatus,
+  private async sendSubscriptionPaymentSuccessNotification(
+    invoice: Stripe.Invoice,
   ) {
     try {
-      await this.paymentModel.findOneAndUpdate(
-        { stripePaymentIntentId },
-        { status },
-        { new: true },
+      const customerId = invoice.customer as string;
+      const amount = invoice.amount_paid / 100;
+      const subscriptionId = invoice.subscription as string;
+
+      const user = await this.getUserByStripeCustomerId(customerId);
+      if (!user) {
+        console.log(`User not found for Stripe customer: ${customerId}`);
+        return;
+      }
+
+      await this.notificationService.createNotification({
+        userId: user._id.toString(),
+        title: 'Assinatura Paga com Sucesso',
+        message: `Sua assinatura de R$ ${amount.toFixed(2)} foi processada com sucesso! Seu plano está ativo.`,
+        type: NotificationType.PAYMENT_SUCCESS,
+        relatedEntityId: subscriptionId,
+        relatedEntityType: 'subscription',
+        metadata: {
+          invoiceId: invoice.id,
+          subscriptionId,
+          amount,
+          customerId,
+          invoiceNumber: invoice.number,
+          hostedInvoiceUrl: invoice.hosted_invoice_url,
+        },
+      });
+
+      console.log(
+        `Subscription payment success notification sent for user: ${user._id}`,
       );
     } catch (error) {
-      throw new CustomApiError(
-        ApiMessages.Payment.Failed.title,
-        ApiMessages.Payment.Failed.message,
-        ErrorCodes.PAYMENT_FAILED,
-        400,
+      console.error(
+        'Error sending subscription payment success notification:',
+        error,
       );
+    }
+  }
+
+  private async sendSubscriptionCanceledNotification(
+    subscription: Stripe.Subscription,
+  ) {
+    try {
+      const customerId = subscription.customer as string;
+      const subscriptionId = subscription.id;
+
+      const user = await this.getUserByStripeCustomerId(customerId);
+      if (!user) {
+        console.log(`User not found for Stripe customer: ${customerId}`);
+        return;
+      }
+
+      await this.notificationService.createNotification({
+        userId: user._id.toString(),
+        title: 'Assinatura cancelada por falta de pagamento',
+        message: `Sua assinatura foi cancelada por falta de pagamento! Por favor, entre em contato conosco para reativar sua assinatura.`,
+        type: NotificationType.SUBSCRIPTION_CANCELED,
+        relatedEntityId: subscriptionId,
+        relatedEntityType: 'subscription',
+        metadata: {},
+      });
+
+      console.log(
+        `Subscription canceled notification sent for user: ${user._id}`,
+      );
+    } catch (error) {
+      console.error('Error sending subscription canceled notification:', error);
+    }
+  }
+
+  private async getUserByStripeCustomerId(stripeCustomerId: string) {
+    try {
+      return await this.userModel.findOne({ stripeCustomerId }).exec();
+    } catch (error) {
+      console.error('Error finding user by Stripe customer ID:', error);
+      return null;
     }
   }
 
@@ -154,6 +222,34 @@ export class PaymentsService {
         ErrorCodes.PAYMENT_FAILED,
         400,
       );
+    }
+  }
+
+  private async handleInvoicePaid(invoice: Stripe.Invoice) {
+    try {
+      if (invoice.subscription) {
+        await this.subscriptionsService.updateSubscriptionStatus(
+          invoice.subscription as string,
+          'active',
+        );
+      }
+    } catch (error) {
+      console.error('Error handling invoice paid:', error);
+    }
+  }
+
+  private async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+    try {
+      console.log('Handling subscription deleted:', subscription.id);
+
+      await this.subscriptionsService.updateSubscriptionStatus(
+        subscription.id,
+        'canceled',
+      );
+
+      console.log('Subscription status updated to canceled:', subscription.id);
+    } catch (error) {
+      console.error('Error handling subscription deleted:', error);
     }
   }
 }

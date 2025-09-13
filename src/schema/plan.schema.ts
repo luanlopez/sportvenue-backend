@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export type SubscriptionPlanDocument = SubscriptionPlan & Document;
+export type PlanDocument = Plan & Document;
 
 export enum PlanType {
   BASIC = 'BASIC',
@@ -10,7 +10,7 @@ export enum PlanType {
 }
 
 @Schema({ timestamps: true })
-export class SubscriptionPlan {
+export class Plan {
   @Prop({ required: true })
   name: string;
 
@@ -19,6 +19,9 @@ export class SubscriptionPlan {
 
   @Prop({ required: true })
   price: number;
+
+  @Prop({ required: true })
+  stripePriceId: string;
 
   @Prop({ required: true })
   courtLimit: number;
@@ -34,5 +37,4 @@ export class SubscriptionPlan {
   isActive: boolean;
 }
 
-export const SubscriptionPlanSchema =
-  SchemaFactory.createForClass(SubscriptionPlan);
+export const PlanSchema = SchemaFactory.createForClass(Plan);

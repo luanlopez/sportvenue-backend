@@ -8,5 +8,9 @@ export class UserProfileDto {
   userType: string;
   picture?: string;
   googleId?: string;
-  subscriptionPlanId?: string;
+  stripeCustomerId?: string;
+  subscription?: {
+    id: string;
+    status: string;
+  };
 }

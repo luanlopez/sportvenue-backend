@@ -17,6 +17,7 @@ import { CustomApiError } from '../../common/errors/custom-api.error';
 import { ErrorCodes } from '../../common/errors/error-codes';
 import { ApiMessages } from '../../common/messages/api-messages';
 import { PaymentsService } from '../payments/payments.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +27,7 @@ export class AuthService {
     private readonly cryptoService: CryptoService,
     private readonly resendService: ResendService,
     private readonly paymentService: PaymentsService,
+    private readonly subscriptionService: SubscriptionsService,
     @InjectModel('VerificationCode')
     private readonly verificationModel: Model<VerificationCode>,
   ) {}
@@ -67,7 +69,6 @@ export class AuthService {
         firstName: preRegisterDto.firstName,
         lastName: preRegisterDto.lastName,
         userType: preRegisterDto?.userType,
-        planID: preRegisterDto?.planID,
         phone: preRegisterDto.phone,
         password: preRegisterDto.password,
       },
@@ -129,13 +130,6 @@ export class AuthService {
       userType: verification.userData.userType as UserType,
     });
 
-    if (verification.userData.planID) {
-      await this.usersService.assignSubscription(
-        newUser.id,
-        verification.userData.planID,
-      );
-    }
-
     verification.isUsed = true;
     await verification.save();
 
@@ -153,6 +147,11 @@ export class AuthService {
   async me(user: any): Promise<UserProfileDto> {
     const userFinded = await this.usersService.getUserById(user.id);
 
+    const subscriptionStatus =
+      await this.subscriptionService.getSubscriptionStatus(
+        userFinded?.subscriptionId?.toString(),
+      );
+
     return {
       id: userFinded.id,
       email: userFinded.email,
@@ -163,7 +162,11 @@ export class AuthService {
       updated_at: userFinded.updatedAt,
       picture: userFinded?.picture,
       googleId: userFinded?.googleId,
-      subscriptionPlanId: String(userFinded?.subscriptionId),
+      subscription: {
+        id: userFinded?.subscriptionId?.toString(),
+        status: subscriptionStatus,
+      },
+      stripeCustomerId: userFinded?.stripeCustomerId,
     };
   }
 

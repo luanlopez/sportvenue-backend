@@ -45,13 +45,4 @@ export class PreRegisterDTO {
   @IsString()
   @IsOptional()
   userType: string;
-
-  @ApiProperty({
-    description: 'Plan type',
-    example: 'FREE',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  planID: string;
 }
